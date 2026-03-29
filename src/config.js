@@ -4,9 +4,6 @@ import fs from 'fs';
 import { pathToFileURL } from 'url';
 import { logger } from './logger.js';
 
-// Initialize environment variables ASAP
-dotenv.config();
-
 /**
  * Attempts to load runway.config.js from the current working directory.
  */
@@ -29,6 +26,13 @@ async function loadConfigFile() {
 
 // Load user config from file
 const userConfig = await loadConfigFile();
+
+// Determine variables path from user config or default to .env
+const isTest = process.env.NODE_ENV === 'test';
+const envFilePath = isTest && userConfig.testEnvFile ? userConfig.testEnvFile : (userConfig.envFile || '.env');
+
+// Initialize environment variables ASAP
+dotenv.config({ path: envFilePath });
 
 /**
  * Resolved configuration object for Runway.

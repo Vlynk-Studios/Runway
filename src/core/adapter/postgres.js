@@ -36,7 +36,7 @@ export class PostgresAdapter extends BaseAdapter {
       this.client = new Client(clientConfig);
       await this.client.connect();
     } catch (error) {
-      throw new Error(`Failed to connect to PostgreSQL: ${error.message}`);
+      throw new Error(`Failed to connect to PostgreSQL: ${error.message}`, { cause: error });
     }
   }
 

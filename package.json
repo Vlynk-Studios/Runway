@@ -3,7 +3,14 @@
   "version": "0.1.0",
   "description": "Runway — SQL migration CLI for Node.js and PostgreSQL",
   "type": "module",
-  "main": "index.js",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Vlynk-Studios/Runway.git"
+  },
+  "homepage": "https://github.com/Vlynk-Studios/Runway#readme",
+  "bugs": {
+    "url": "https://github.com/Vlynk-Studios/Runway/issues"
+  },
   "bin": {
     "runway": "./bin/runway.js"
   },
@@ -14,9 +21,21 @@
     "lint": "eslint .",
     "format": "prettier --write .",
     "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js",
-    "prepublishOnly": "npm run test && npm run lint"
+    "prepublishOnly": "npm run lint && npm test"
   },
-  "keywords": ["migrations", "sql", "postgres", "postgresql", "cli", "database", "devtools"],
+  "jest": {
+    "testEnvironment": "node",
+    "transform": {}
+  },
+  "keywords": [
+    "migrations",
+    "sql",
+    "postgres",
+    "postgresql",
+    "cli",
+    "database",
+    "devtools"
+  ],
   "author": "Vlynk Studios And Keiver-Dev",
   "license": "MIT",
   "files": [
@@ -24,7 +43,8 @@
     "src/",
     "README.md",
     "LICENSE",
-    "CHANGELOG.md"
+    "CHANGELOG.md",
+    ".env.example"
   ],
   "dependencies": {
     "commander": "^14.0.3",
@@ -32,7 +52,9 @@
     "pg": "^8.20.0"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
     "eslint": "^10.1.0",
+    "globals": "^17.4.0",
     "jest": "^30.3.0",
     "prettier": "^3.8.1"
   }

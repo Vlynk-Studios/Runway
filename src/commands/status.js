@@ -38,9 +38,9 @@ export async function status() {
       if (appliedAt) {
         // Format date: YYYY-MM-DD HH:mm:ss
         const dateStr = new Date(appliedAt).toISOString().replace('T', ' ').split('.')[0];
-        logger.success(`[✓] ${file.padEnd(45)} applied at ${dateStr}`);
+        logger.success(`[x] ${file.padEnd(45)} applied at ${dateStr}`);
       } else {
-        logger.warn(`[↷] ${file.padEnd(45)} pending`);
+        logger.warn(`[ ] ${file.padEnd(45)} pending`);
       }
     }
 
@@ -48,11 +48,11 @@ export async function status() {
     
     logger.printDivider();
     logger.info('Summary:');
-    logger.info(`  ✓ Applied : ${applied.length}`);
+    logger.info(`  * Applied : ${applied.length}`);
     if (pendingCount > 0) {
-      logger.warn(`  ↷ Pending : ${pendingCount} (Run 'runway migrate' to sync)`);
+      logger.warn(`  * Pending : ${pendingCount} (Run 'runway migrate' to sync)`);
     } else {
-      logger.success('  ↷ Pending : 0 (Database is up to date)');
+      logger.success('  * Pending : 0 (Database is up to date)');
     }
     console.log('\n');
 

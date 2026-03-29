@@ -41,7 +41,7 @@ export async function migrate(options) {
     if (dryRun) {
       logger.warn(`Dry-run complete. ${result.applied} migration(s) would be applied. No changes were made.`);
     } else if (result.applied > 0) {
-      logger.success('Database migration synchronized successfully! 🛫');
+      logger.success('Database migration synchronized successfully!');
     } else {
       logger.info('Database is already up to date.');
     }

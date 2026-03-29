@@ -1,11 +1,20 @@
-# Runway 🛫
+# Runway
 
 [![npm version](https://img.shields.io/npm/v/@vlynk-studios/runway.svg?style=flat-square)](https://www.npmjs.com/package/@vlynk-studios/runway)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=flat-square)](https://opensource.org/licenses/MIT)
 
-Runway is a lightweight, reliable, and transactional database migration tool for Node.js and PostgreSQL. Designed for speed and consistency, it ensures your database schema evolves safely alongside your code.
+Runway is a lightweight, reliable, and transactional SQL migration CLI for Node.js. Designed for speed and consistency, it ensures your database schema evolves safely alongside your code.
 
-## Installation 📦
+## Features
+
+- **Transactional** — every migration runs inside its own transaction. If it fails, it rolls back cleanly.
+- **Integrity Checks** — SHA-256 checksums detect if an applied migration file is modified after the fact.
+- **Dry-run mode** — preview what would be applied without touching the database.
+- **Minimal footprint** — only 3 production dependencies: `pg`, `commander`, and `dotenv`.
+- **Flexible config** — `runway.config.js` with multi-environment support (`envFile` / `testEnvFile`).
+- **Adapter architecture** — PostgreSQL today, more databases on the roadmap.
+
+## Installation
 
 Install as a development dependency:
 
@@ -13,63 +22,132 @@ Install as a development dependency:
 npm install -D @vlynk-studios/runway
 ```
 
-Or initialize your project directly:
+Or run directly with npx:
 
 ```bash
 npx @vlynk-studios/runway init
 ```
 
-## Features ✨
+## Quick Start
 
-- **Transactional**: Every migration is executed within a transaction to ensure atomicity.
-- **Integrity Checks**: Automatic SHA-256 checksum validation to prevent accidental migration changes.
-- **Postgres Native**: Built specifically for PostgreSQL using the robust `pg` driver.
-- **Zero-Dependency Core**: Minimal external dependencies for a faster and more secure CLI.
-- **Flexible Config**: Easy-to-use `runway.config.js` with support for multiple environments.
+```bash
+# 1. Initialize Runway in your project
+runway init
 
-## Configuration ⚙️
+# 2. Create your first migration
+runway create create_users_table
 
-Initialize your project with `runway init` to create a `runway.config.js` file:
+# 3. Run pending migrations
+runway migrate
+
+# 4. Check the current state
+runway status
+```
+
+## Database Connection
+
+Runway reads your database credentials from environment variables. You can use a connection string or individual variables.
+
+**Via `DATABASE_URL`:**
+
+```env
+DATABASE_URL=postgresql://user:password@localhost:5432/mydb
+```
+
+**Via individual variables:**
+
+```env
+DB_HOST=localhost
+DB_PORT=5432
+DB_USER=myuser
+DB_PASSWORD=mypassword
+DB_NAME=mydb
+
+# Optional
+DB_SSL=false
+```
+
+## Configuration
+
+Run `runway init` to generate a `runway.config.js` in your project root:
 
 ```javascript
-/**
- * Runway Configuration File
- */
 export default {
   // Directory where migration files are stored
   migrationsDir: './migrations',
 
-  // Environment files to load configuration from
+  // Environment file for local development
   envFile: '.env',
+
+  // Environment file used when NODE_ENV=test
   testEnvFile: '.env.test',
 
-  // Optional: database configuration overrides
+  // Optional: database connection overrides
+  // (environment variables take precedence)
   database: {
-    // schema: 'public'
+    // url: 'postgresql://...',
+    // host: 'localhost',
+    // port: 5432,
+    // user: 'myuser',
+    // password: 'mypassword',
+    // database: 'mydb',
+    // ssl: false,
   }
 };
 ```
 
-## Commands 🚀
+**Priority chain:** `ENV vars > runway.config.js > defaults`
+
+## Commands
 
 | Command | Description |
 | :--- | :--- |
-| `init` | Bootstrap Runway in the current directory. |
-| `create <name>` | Generate a new timestamped migration file. |
-| `migrate` | Run all pending migrations in order. |
-| `status` | Show applied and pending migrations. |
-| `baseline <version>` | Mark the database as already updated to a version. |
+| `runway init` | Bootstrap Runway in the current directory. |
+| `runway create <name>` | Generate a new numbered migration file (`NNN_name.sql`). |
+| `runway migrate` | Run all pending migrations in order. |
+| `runway migrate --dry-run` | Preview what would be applied without touching the DB. |
+| `runway migrate --env <path>` | Use a custom environment file for this run. |
+| `runway status` | Show all migrations with their state and timestamps. |
+| `runway baseline [version]` | Mark existing migrations as applied without running SQL. |
+| `runway rollback` | *(coming in v0.2.0)* |
 
-## Contribution 🤝
+## Migration Files
 
-Contributions are what make the open source community such an amazing place to learn, inspire, and create. Any contributions you make are **greatly appreciated**.
+Migration files follow the naming convention `NNN_description.sql`, where `NNN` is a zero-padded number that determines execution order.
 
-1. Fork the Project
-2. Create your Feature Branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your Changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the Branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
+```
+migrations/
+├── 001_create_users_table.sql
+├── 002_add_email_index.sql
+└── 003_create_posts_table.sql
+```
+
+`runway create <name>` handles the numbering automatically.
+
+## Baseline
+
+If you already have an existing database with a schema defined in your migration files, use `baseline` to register them as applied without executing any SQL. This is a one-time operation for onboarding existing databases.
+
+```bash
+runway baseline          # baseline all migrations
+runway baseline 005      # baseline only up to migration 005
+```
+
+## Requirements
+
+- Node.js `>= 18.0.0`
+- PostgreSQL (other databases coming in a future release)
+
+## Contribution
+
+Contributions are welcome and greatly appreciated.
+
+1. Fork the project
+2. Create your feature branch (`git checkout -b feature/my-feature`)
+3. Commit your changes (`git commit -m 'feat: add my feature'`)
+4. Push to the branch (`git push origin feature/my-feature`)
+5. Open a Pull Request against `dev`
 
 ---
 
-Built with ❤️ by [Vlynk Studios](https://github.com/Vlynk-Studios) & [Keiver-Dev](https://github.com/Keiver-Dev)
+Built with love by [Vlynk Studios](https://github.com/Vlynk-Studios) & [Keiver-Dev](https://github.com/Keiver-Dev)

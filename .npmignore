@@ -1,0 +1,28 @@
+# Files explicitly excluded from the npm package.
+# The `files` field in package.json already whitelists what IS included
+# (bin/, src/, README.md, LICENSE, CHANGELOG.md).
+# This file adds a safety net for anything that slips through.
+
+# Dev artefacts and manual test directories
+test-runway/
+test-init-runway/
+verify-config.js
+
+# Dev environment files
+.env
+.env.*
+!.env.example
+
+# Config/tooling files (not needed by consumers)
+.editorconfig
+.prettierrc
+eslint.config.js
+runway.config.js
+
+# CI/CD
+.github/
+
+# Misc
+.git/
+*.log
+coverage/

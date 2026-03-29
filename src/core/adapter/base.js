@@ -11,7 +11,7 @@ export class BaseAdapter {
     throw new Error('Method connect not implemented');
   }
 
-  async query(sql, params) {
+  async query(_sql, _params) {
     throw new Error('Method query not implemented');
   }
 

@@ -64,7 +64,7 @@ export async function init() {
   }
 
   logger.printDivider();
-  logger.success('Runway initialization complete! 🛫');
+  logger.success('Runway initialization complete!');
   logger.info('Next steps:');
   logger.info('  1. Configure your database in runway.config.js or .env');
   logger.info('  2. Create your first migration: npx runway create <name>');

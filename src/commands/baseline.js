@@ -17,7 +17,7 @@ export async function baseline(version) {
   const logTable = new LogTable(config.schema);
 
   logger.printDivider();
-  logger.warn('  ⚠️  BASELINE MODE ACTIVATED  ⚠️');
+  logger.warn('  ! BASELINE MODE ACTIVATED !');
   logger.warn('This will record migrations as applied WITHOUT executing any SQL.');
   logger.warn('Use this ONLY once to synchronize an existing database with Runway');
   logger.warn('that already contains the schema defined in these files.');
@@ -62,7 +62,7 @@ export async function baseline(version) {
       const checksum = calculateChecksum(content);
       
       await logTable.registerMigration(adapter, file, checksum);
-      logger.success(`[↷] ${file} — marked as applied`);
+      logger.success(`[x] ${file} — marked as applied`);
     }
     
     await adapter.commit();
@@ -70,9 +70,9 @@ export async function baseline(version) {
     const alreadyApplied = files.length - pending.length;
 
     logger.printDivider();
-    logger.success('Baseline process finished! ✓');
-    logger.info(`  ↷ Marked as applied : ${pending.length}`);
-    logger.info(`  ↷ Already registered : ${alreadyApplied}`);
+    logger.success('Baseline process finished!');
+    logger.info(`  * Marked as applied : ${pending.length}`);
+    logger.info(`  * Already registered : ${alreadyApplied}`);
     logger.info('Run "runway status" to verify the current state.');
     console.log('\n');
 

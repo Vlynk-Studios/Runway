@@ -7,16 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Added
-- New **Vlynk-style logger** with ANSI colors, timestamps, and formatted headers.
-- **Dynamic Configuration System** with support for `runway.config.js` and `.env`.
-- **Database Adapter Layer** with a standardized interface (`BaseAdapter`).
-- **PostgreSQL Adapter** implemented using the `pg` library, supporting both connection strings and structured credentials.
-- **Project Documentation**: Comprehensive README.md and .env.example with clear usage instructions.
-- Initial templates for project bootstrapping.
+## [0.1.0] - 2026-03-29
 
-### Fixed
-- Fixed CLI visual output in `bin/runway.js` to match the new logger interface.
+### Added
+- `runway init` — bootstraps a new project with `./migrations/`, `runway.config.js`, and `.env.example`. Skips with a warning if files already exist.
+- `runway create <name>` — generates a sequentially numbered `NNN_<name>.sql` migration file with an auto-incremented prefix (zero-padded to 3 digits).
+- `runway migrate` — runs all pending migrations in order, each wrapped in a transaction. Supports `--env <path>` for custom environment files and `--dry-run` to preview changes without touching the database.
+- `runway status` — lists all migration files with their state (applied with timestamp / pending) and a summary count.
+- `runway baseline [version]` — marks existing migrations as applied without executing SQL, with a clear warning and transactional safety. Supports optional version prefix to baseline up to a specific point.
+- `runway rollback` — registered as a CLI command (stub, coming in v0.2.0).
+- **Checksum integrity checks** — SHA-256 checksums stored per migration; Runway detects if an applied file is modified and aborts with a clear error.
+- **Vlynk-style logger** — ANSI-colored output with timestamps and levels (info / warn / error / success).
+- **Dynamic configuration system** — priority chain: `ENV vars > runway.config.js > defaults`. Supports `DATABASE_URL` or individual `DB_HOST / DB_USER / DB_NAME` credentials.
+- **Database Adapter Layer** — abstract `BaseAdapter` interface with a full `PostgresAdapter` implementation using the `pg` driver.
+- **Unit test suite** — Jest tests covering `checksum`, `LogTable`, and `MigrationRunner` (including dry-run and integrity violation scenarios).
+- **CI/CD workflows** — GitHub Actions for CI (Node 18/20/22 matrix) and automated npm publish on version tags.
 
 ## [0.1.0-alpha.1] - 2026-03-28
 
