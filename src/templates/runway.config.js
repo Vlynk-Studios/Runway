@@ -4,26 +4,26 @@
  */
 export default {
   /**
-   * Directory where your migration files are stored.
-   * Default: './migrations'
+   * migrationsDir: The directory where your migration files are stored.
+   * By default, Runway looks in './migrations'.
    */
   migrationsDir: './migrations',
 
   /**
-   * The .env file to load for default configuration.
-   * Default: '.env'
+   * envFile: Path to the .env file that should be loaded during initialization.
+   * Usually '.env' for local development.
    */
   envFile: '.env',
 
   /**
-   * The .env file to load when running tests.
-   * Default: '.env.test'
+   * testEnvFile: Path to the .env file that should be loaded during test execution.
+   * Useful for pointing to a dedicated test database (e.g., '.env.test').
    */
   testEnvFile: '.env.test',
 
   /**
-   * Database connection settings.
-   * These can also be provided via environment variables (recommended).
+   * database: Deep configuration for the database connection.
+   * Note: It is recommended to use environment variables for sensitive data.
    */
   database: {
     // url: process.env.DATABASE_URL,
