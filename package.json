@@ -1,6 +1,6 @@
 {
   "name": "@vlynk-studios/runway",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Runway — SQL migration CLI for Node.js and PostgreSQL",
   "type": "module",
   "repository": {

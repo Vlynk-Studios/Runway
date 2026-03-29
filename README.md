@@ -8,11 +8,12 @@ Runway is a lightweight, reliable, and transactional SQL migration CLI for Node.
 ## Features
 
 - **Transactional** — every migration runs inside its own transaction. If it fails, it rolls back cleanly.
+- **Full Rollback Support** — easily revert applied migrations with multi-step support.
 - **Integrity Checks** — SHA-256 checksums detect if an applied migration file is modified after the fact.
+- **Cross-platform Consistent** — automatic line ending normalization (CRLF/LF) for team workflows.
 - **Dry-run mode** — preview what would be applied without touching the database.
 - **Minimal footprint** — only 3 production dependencies: `pg`, `commander`, and `dotenv`.
-- **Flexible config** — `runway.config.js` with multi-environment support (`envFile` / `testEnvFile`).
-- **Adapter architecture** — PostgreSQL today, more databases on the roadmap.
+- **Flexible config** — `runway.config.js` with multi-environment support.
 
 ## Installation
 
@@ -42,6 +43,9 @@ runway migrate
 
 # 4. Check the current state
 runway status
+
+# 5. Rollback if needed
+runway rollback --steps 1
 ```
 
 ## Database Connection
@@ -109,20 +113,32 @@ export default {
 | `runway migrate --env <path>` | Use a custom environment file for this run. |
 | `runway status` | Show all migrations with their state and timestamps. |
 | `runway baseline [version]` | Mark existing migrations as applied without running SQL. |
-| `runway rollback` | *(coming in v0.2.0)* |
+| `runway rollback` | Revert the last applied migration. |
+| `runway rollback --steps <n>` | Revert multiple migrations in order. |
+| `runway rollback --dry-run` | Preview what would be reverted without touching the DB. |
 
 ## Migration Files
 
-Migration files follow the naming convention `NNN_description.sql`, where `NNN` is a zero-padded number that determines execution order.
+Migration files follow the naming convention `NNN_description.sql` (UP) and `NNN_description.down.sql` (DOWN). `NNN` is a zero-padded number that determines execution order.
 
 ```
 migrations/
 ├── 001_create_users_table.sql
+├── 001_create_users_table.down.sql
 ├── 002_add_email_index.sql
-└── 003_create_posts_table.sql
+└── 002_add_email_index.down.sql
 ```
 
-`runway create <name>` handles the numbering automatically.
+`runway create <name>` handles both file creation and numbering automatically.
+
+## Status Indicators
+
+The `runway status` command uses the following indicators for clarity:
+
+- `[x]` **Applied**: Migration has been successfully executed in the database.
+- `[r]` **Rolled Back**: Migration was previously applied but has since been reverted.
+- `[ ]` **Pending**: Migration file exists locally but has not been applied yet.
+- `[!]` **Orphan**: Migration is recorded as applied in the database but the file is missing from disk.
 
 ## Baseline
 

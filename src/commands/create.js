@@ -49,25 +49,38 @@ export async function create(name) {
     .replace(/\s+/g, '_')           // Spaces to underscores
     .replace(/[^a-z0-9_]/g, '');    // Remove special characters
   
-  const fileName = `${prefix}_${sanitizedName}.sql`;
-  const filePath = path.join(migrationsDir, fileName);
+  const upFileName = `${prefix}_${sanitizedName}.sql`;
+  const downFileName = `${prefix}_${sanitizedName}.down.sql`;
+  
+  const upFilePath = path.join(migrationsDir, upFileName);
+  const downFilePath = path.join(migrationsDir, downFileName);
 
-  // 4. Prepare SQL template
+  // 4. Prepare SQL templates
   const timestamp = new Date().toISOString().replace('T', ' ').substring(0, 19);
-  const content = `-- Migration: ${name}
+  
+  const upContent = `-- Migration: ${name} (UP)
 -- Created: ${timestamp}
 
--- Write your SQL migration here
+-- Write your UP migration SQL here
 `;
 
-  // 5. Write file and log result
+  const downContent = `-- Migration: ${name} (DOWN)
+-- Created: ${timestamp}
+
+-- Write your DOWN migration SQL here
+`;
+
+  // 5. Write files and log result
   try {
-    fs.writeFileSync(filePath, content, 'utf8');
-    logger.success(`Successfully created migration: ${fileName}`);
-    logger.info(`File path: ${filePath}`);
+    fs.writeFileSync(upFilePath, upContent, 'utf8');
+    fs.writeFileSync(downFilePath, downContent, 'utf8');
+    
+    logger.success(`Successfully created migration: ${prefix}_${sanitizedName}`);
+    logger.info(`  UP:   ${upFilePath}`);
+    logger.info(`  DOWN: ${downFilePath}`);
     console.log('\n');
   } catch (error) {
-    logger.error(`Could not write migration file: ${error.message}`);
+    logger.error(`Could not write migration files: ${error.message}`);
     process.exit(1);
   }
 }

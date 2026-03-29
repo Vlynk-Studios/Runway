@@ -31,13 +31,14 @@ export class MigrationRunner {
     // Initialize the migrations log table
     await this.logTable.ensureTable(this.adapter);
 
-    // Get applied migrations from the DB
-    const applied = await this.logTable.getAppliedMigrations(this.adapter);
-    const appliedMap = new Map(applied.map(m => [m.name, m.checksum]));
+    // Get migration history and filter active ones
+    const history = await this.logTable.getAppliedMigrations(this.adapter);
+    const activeApplied = history.filter(m => !m.rolled_back_at);
+    const appliedMap = new Map(activeApplied.map(m => [m.name, m.checksum]));
 
     // Get files from the migrations directory
     const files = fs.readdirSync(migrationsDir)
-      .filter(f => /^\d+_.+\.sql$/.test(f))
+      .filter(f => /^\d+_.+\.sql$/.test(f) && !f.endsWith('.down.sql'))
       .sort();
 
     for (const file of files) {
@@ -85,6 +86,88 @@ export class MigrationRunner {
         logger.error(error.message);
         summary.failed++;
         throw error;
+      }
+    }
+
+    return summary;
+  }
+
+  /**
+   * Reverts the last N migration(s) applied to the database.
+   * @param {object} options
+   * @param {boolean} [options.dryRun=false] - If true, shows what would happen without applying changes.
+   * @param {number} [options.steps=1] - Number of migrations to revert.
+   */
+  async rollback({ dryRun = false, steps = 1 } = {}) {
+    const migrationsDir = path.resolve(process.cwd(), this.config.migrationsDir);
+    const summary = { rolledBack: 0, failed: 0 };
+
+    if (!fs.existsSync(migrationsDir)) {
+      throw new Error(`Migrations directory not found: ${this.config.migrationsDir}`);
+    }
+
+    // Initialize the migrations log table
+    await this.logTable.ensureTable(this.adapter);
+
+    // Get all applied migrations that aren't rolled back
+    const history = await this.logTable.getAppliedMigrations(this.adapter);
+    const applied = history.filter(m => !m.rolled_back_at);
+
+    if (applied.length === 0) {
+      logger.info('No migrations have been applied yet. Nothing to rollback.');
+      return summary;
+    }
+
+    const totalSteps = Math.min(steps, applied.length);
+    if (steps > applied.length) {
+      logger.warn(`Requested ${steps} steps, but only ${applied.length} migration(s) are applied. Rolling back all.`);
+    }
+
+    for (let i = 0; i < totalSteps; i++) {
+      // Re-fetch or pop from the list to get the current "last" migration
+      const lastMigration = applied.pop();
+      const migrationName = lastMigration.name;
+
+      // Check for corresponding .down.sql file
+      const downFileName = migrationName.replace(/\.sql$/, '.down.sql');
+      const downFilePath = path.join(migrationsDir, downFileName);
+
+      if (!fs.existsSync(downFilePath)) {
+        throw new Error(
+          `Rollback failed: The rollback file "${downFileName}" was not found for migration "${migrationName}".\n` +
+          `Rollback halted.`
+        );
+      }
+
+      const content = fs.readFileSync(downFilePath, 'utf8');
+
+      if (dryRun) {
+        logger.warn(`[DRY-RUN] Step ${i + 1}/${totalSteps}: Would rollback ${migrationName}`);
+        summary.rolledBack++;
+        continue;
+      }
+
+      logger.info(`Rolling back migration [${i + 1}/${totalSteps}]: ${migrationName}`);
+
+      try {
+        await this.adapter.begin();
+        await this.adapter.query(content);
+        await this.logTable.markAsRolledBack(this.adapter, migrationName);
+        await this.adapter.commit();
+
+        logger.success(`Success: Rolled back ${migrationName}`);
+        summary.rolledBack++;
+      } catch (error) {
+        await this.adapter.rollback();
+
+        let context = '';
+        if (error.position) context += ` (at character ${error.position})`;
+        if (error.detail) context += ` - ${error.detail}`;
+
+        logger.error(`Rollback failed for ${migrationName}${context}`);
+        logger.error(error.message);
+        summary.failed++;
+        throw error; // Halt execution on failure
       }
     }
 

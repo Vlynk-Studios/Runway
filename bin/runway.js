@@ -13,6 +13,7 @@ import pkg from '../package.json' with { type: 'json' };
 import { init } from '../src/commands/init.js';
 import { create } from '../src/commands/create.js';
 import { migrate } from '../src/commands/migrate.js';
+import { rollback } from '../src/commands/rollback.js';
 import { status } from '../src/commands/status.js';
 import { baseline } from '../src/commands/baseline.js';
 
@@ -76,11 +77,12 @@ program
 
 program
   .command('rollback')
-  .description('Revert the last migration applied (coming in v0.2.0)')
-  .action(async () => {
-    logger.warn('runway rollback is coming in v0.2.0');
-    logger.info('follow progress at github.com/vlynk-studios/runway');
-    console.log('');
+  .description('Revert the last migration(s) applied to the database')
+  .option('-e, --env <path>', 'Specify a custom .env file path')
+  .option('-d, --dry-run', 'Show what would be executed without applying changes')
+  .option('-s, --steps <n>', 'Number of migrations to revert', parseInt, 1)
+  .action(async (options) => {
+    await rollback(options);
   });
 
 // Handle unknown commands
