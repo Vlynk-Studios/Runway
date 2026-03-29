@@ -1,7 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import { config, validateDatabaseConfig } from '../config.js';
-import { logger } from '../logger.js';
+import { logger, colors } from '../logger.js';
 import { PostgresAdapter } from '../core/adapter/postgres.js';
 import { LogTable } from '../core/log-table.js';
 
@@ -18,8 +18,8 @@ export async function status() {
     await adapter.connect();
     await logTable.ensureTable(adapter);
 
-    const applied = await logTable.getAppliedMigrations(adapter);
-    const appliedMap = new Map(applied.map(m => [m.name, m.applied_at]));
+    const history = await logTable.getAppliedMigrations(adapter);
+    const historyMap = new Map(history.map(m => [m.name, m]));
 
     const migrationsDir = path.resolve(process.cwd(), config.migrationsDir);
     if (!fs.existsSync(migrationsDir)) {
@@ -33,26 +33,42 @@ export async function status() {
     logger.info('Database Migration Status:');
     console.log('');
 
+    let appliedCount = 0;
+    let rolledBackCount = 0;
+    let pendingCount = 0;
+
     for (const file of files) {
-      const appliedAt = appliedMap.get(file);
-      if (appliedAt) {
-        // Format date: YYYY-MM-DD HH:mm:ss
-        const dateStr = new Date(appliedAt).toISOString().replace('T', ' ').split('.')[0];
-        logger.success(`[x] ${file.padEnd(45)} applied at ${dateStr}`);
+      const record = historyMap.get(file);
+
+      if (record && !record.rolled_back_at) {
+        // APPLIED: Record exists and no rollback timestamp
+        appliedCount++;
+        const dateStr = new Date(record.applied_at).toISOString().replace('T', ' ').split('.')[0];
+        console.log(`${colors.green}✓ ${file.padEnd(45)}${colors.reset} applied at ${dateStr}`);
+
+      } else if (record && record.rolled_back_at) {
+        // ROLLED BACK: Record exists but has rolled_back_at
+        rolledBackCount++;
+        const appliedAtStr = new Date(record.applied_at).toISOString().replace('T', ' ').split('.')[0];
+        const rolledBackAtStr = new Date(record.rolled_back_at).toISOString().replace('T', ' ').split('.')[0];
+        console.log(`${colors.yellow}↺ ${file.padEnd(45)}${colors.reset} rolled back (Applied: ${appliedAtStr} | Rolled Back: ${rolledBackAtStr})`);
+
       } else {
-        logger.warn(`[ ] ${file.padEnd(45)} pending`);
+        // PENDING: No record in database
+        pendingCount++;
+        console.log(`${colors.gray}↷ ${file.padEnd(45)} pending${colors.reset}`);
       }
     }
 
-    const pendingCount = files.length - applied.length;
-    
     logger.printDivider();
     logger.info('Summary:');
-    logger.info(`  * Applied : ${applied.length}`);
+    console.log(`${colors.green}  ✓ Applied     : ${appliedCount}${colors.reset}`);
+    console.log(`${colors.yellow}  ↺ Rolled back : ${rolledBackCount}${colors.reset}`);
+    
     if (pendingCount > 0) {
-      logger.warn(`  * Pending : ${pendingCount} (Run 'runway migrate' to sync)`);
+      console.log(`${colors.gray}  ↷ Pending     : ${pendingCount}${colors.reset} ${colors.dim}(Run 'runway migrate' to sync)${colors.reset}`);
     } else {
-      logger.success('  * Pending : 0 (Database is up to date)');
+      console.log(`${colors.gray}  ↷ Pending     : 0${colors.reset} ${colors.green}(Database is up to date)${colors.reset}`);
     }
     console.log('\n');
 

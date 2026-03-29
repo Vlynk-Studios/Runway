@@ -27,24 +27,32 @@ export async function rollback(options) {
     await adapter.connect();
 
     const dryRun = options.dryRun ?? false;
+    const steps = parseInt(options.steps || '1', 10);
 
     if (dryRun) {
       logger.warn('Dry-run mode enabled — no changes will be applied to the database.');
     }
 
-    logger.info('Initiating rollback of the last migration...');
-    const result = await runner.rollback({ dryRun });
+    if (steps > 1) {
+      logger.info(`Initiating rollback of the last ${steps} migrations...`);
+    } else {
+      logger.info('Initiating rollback of the last migration...');
+    }
+
+    const result = await runner.rollback({ dryRun, steps });
 
     // 4. Print Summary
     logger.printDivider();
     if (dryRun) {
       if (result.rolledBack > 0) {
-        logger.warn(`Dry-run complete. 1 migration would be rolled back. No changes were made.`);
+        logger.warn(`Dry-run complete. ${result.rolledBack} migration(s) would be rolled back. No changes were made.`);
       } else {
-        logger.info('Nothing would be rolled back.');
+        logger.info('nothing would be rolled back.');
       }
     } else if (result.rolledBack > 0) {
-      logger.success('Last migration rolled back successfully!');
+      logger.success(`${result.rolledBack} migration(s) rolled back successfully!`);
+    } else {
+      logger.info('No migrations were rolled back.');
     }
 
     console.log('\n');

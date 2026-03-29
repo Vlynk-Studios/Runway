@@ -16,17 +16,22 @@ export class LogTable {
         id SERIAL PRIMARY KEY,
         name VARCHAR(255) NOT NULL UNIQUE,
         checksum VARCHAR(64) NOT NULL,
-        applied_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        applied_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        rolled_back_at TIMESTAMP
       );
     `;
     await adapter.query(sql);
+
+    // Ensure the rolled_back_at column exists for users upgrading from v0.1.0/v0.2.0
+    const alterSql = `ALTER TABLE ${this.tableName} ADD COLUMN IF NOT EXISTS rolled_back_at TIMESTAMP;`;
+    await adapter.query(alterSql);
   }
 
   /**
-   * Retrieves all applied migrations with their timestamps.
+   * Retrieves all migration records from the history table.
    */
   async getAppliedMigrations(adapter) {
-    const sql = `SELECT name, checksum, applied_at FROM ${this.tableName} ORDER BY id ASC;`;
+    const sql = `SELECT name, checksum, applied_at, rolled_back_at FROM ${this.tableName} ORDER BY id ASC;`;
     const result = await adapter.query(sql);
     return result.rows || [];
   }
@@ -40,10 +45,10 @@ export class LogTable {
   }
 
   /**
-   * Deletes a migration record from the log table.
+   * Marks a migration record as rolled back instead of deleting it.
    */
-  async deleteMigration(adapter, name) {
-    const sql = `DELETE FROM ${this.tableName} WHERE name = $1;`;
+  async markAsRolledBack(adapter, name) {
+    const sql = `UPDATE ${this.tableName} SET rolled_back_at = CURRENT_TIMESTAMP WHERE name = $1;`;
     await adapter.query(sql, [name]);
   }
 }

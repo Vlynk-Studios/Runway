@@ -77,9 +77,10 @@ program
 
 program
   .command('rollback')
-  .description('Revert the last migration applied to the database')
+  .description('Revert the last migration(s) applied to the database')
   .option('-e, --env <path>', 'Specify a custom .env file path')
   .option('-d, --dry-run', 'Show what would be executed without applying changes')
+  .option('-s, --steps <n>', 'Number of migrations to revert', parseInt, 1)
   .action(async (options) => {
     await rollback(options);
   });
