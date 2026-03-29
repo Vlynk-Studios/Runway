@@ -53,6 +53,7 @@ program
 program
   .command('migrate')
   .description('Run all pending migrations')
+  .option('-e, --env <path>', 'Specify a custom .env file path')
   .option('-d, --dry-run', 'Show what would be executed without applying changes')
   .action(async (options) => {
     await migrate(options);

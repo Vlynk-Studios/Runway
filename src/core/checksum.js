@@ -1,4 +1,8 @@
-// SHA-256 validation
+import crypto from 'crypto';
+
+/**
+ * Calculates a SHA-256 checksum for the provided content.
+ */
 export function calculateChecksum(content) {
-  // TODO: Implement checksum logic
+  return crypto.createHash('sha256').update(content).digest('hex');
 }
