@@ -5,7 +5,28 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.2.0] - 2026-03-29
+
+### Added
+- **Full Rollback Support** — implementation of `runway rollback` command to revert the last applied migration or multiple migrations using `--steps <n>`.
+- **Dual-file Migration Convention** — `runway create` now generates both `.sql` (UP) and `.down.sql` (DOWN) files to ensure reversible migrations.
+- **Advanced Status CLI** — redesigned `runway status` with ASCII indicators for better visibility:
+    - `[x]` for applied migrations.
+    - `[r]` for rolled back migrations.
+    - `[ ]` for pending migrations.
+    - `[!]` for applied migrations missing from disk (orphan detection).
+- **Audit-ready History** — migrated from destructive deletion to a soft-mark system using the `rolled_back_at` column in `runway_migrations`.
+- **Traceability** — the `status` command now displays both applied and rolled-back timestamps for full history visibility.
+
+### Fixed
+- **Multi-platform Checksum Consistency** — implemented line ending normalization (CRLF to LF) in `calculateChecksum` to ensure identical hashes across Windows, Linux, and macOS.
+- **Migration Re-application Bug** — implemented UPSERT (ON CONFLICT) logic in `LogTable.registerMigration` to allow re-applying migrations that were previously rolled back.
+- **SQL Injection Risk** — secured identifier escaping for schema and table names in `LogTable` to prevent potential injection via configuration.
+
+### Changed
+- `LogTable.getAppliedMigrations` now returns the complete history of both applied and reverted migrations.
+- `MigrationRunner` now intelligently filters active migrations from the history to maintain consistency during `migrate` and `rollback` operations.
+- Updated all CLI icons from Unicode emojis to standard ASCII characters for improved terminal compatibility.
 
 ## [0.1.0] - 2026-03-29
 
