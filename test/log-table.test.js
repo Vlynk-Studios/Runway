@@ -26,21 +26,22 @@ describe('LogTable', () => {
   });
 
   describe('ensureTable', () => {
-    it('executes a CREATE TABLE IF NOT EXISTS statement', async () => {
+    it('executes CREATE TABLE and ALTER TABLE statements', async () => {
       const adapter = createMockAdapter();
       const t = new LogTable();
       await t.ensureTable(adapter);
 
-      expect(adapter.queries).toHaveLength(1);
+      expect(adapter.queries).toHaveLength(2);
       expect(adapter.queries[0].sql).toContain('CREATE TABLE IF NOT EXISTS');
-      expect(adapter.queries[0].sql).toContain('"public"."runway_migrations"');
+      expect(adapter.queries[1].sql).toContain('ALTER TABLE');
+      expect(adapter.queries[1].sql).toContain('ADD COLUMN IF NOT EXISTS rolled_back_at');
     });
   });
 
   describe('getAppliedMigrations', () => {
     it('returns the rows from the query result', async () => {
       const mockRows = [
-        { name: '001_init.sql', checksum: 'abc', applied_at: '2025-01-01' },
+        { name: '001_init.sql', checksum: 'abc', applied_at: '2025-01-01', rolled_back_at: null },
       ];
       const adapter = createMockAdapter(mockRows);
       const t = new LogTable();
@@ -58,13 +59,14 @@ describe('LogTable', () => {
   });
 
   describe('registerMigration', () => {
-    it('executes an INSERT with name and checksum parameters', async () => {
+    it('executes an UPSERT (ON CONFLICT) with name and checksum parameters', async () => {
       const adapter = createMockAdapter();
       const t = new LogTable();
       await t.registerMigration(adapter, '001_init.sql', 'deadbeef');
 
       expect(adapter.queries).toHaveLength(1);
       expect(adapter.queries[0].sql).toContain('INSERT INTO');
+      expect(adapter.queries[0].sql).toContain('ON CONFLICT (name)');
       expect(adapter.queries[0].params).toEqual(['001_init.sql', 'deadbeef']);
     });
   });
