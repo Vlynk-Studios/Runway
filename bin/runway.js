@@ -5,15 +5,83 @@
  * CLI tool for project orchestration
  */
 
-const [major] = process.versions.node.split('.').map(Number);
+import { Command } from 'commander';
+import { logger } from '../src/logger.js';
+import pkg from '../package.json' assert { type: 'json' };
 
+// Subcommands imports
+import { init } from '../src/commands/init.js';
+import { create } from '../src/commands/create.js';
+import { migrate } from '../src/commands/migrate.js';
+import { status } from '../src/commands/status.js';
+import { baseline } from '../src/commands/baseline.js';
+
+// Node.js version check
+const [major] = process.versions.node.split('.').map(Number);
 if (major < 18) {
-  console.error('Error: Runway requires Node.js version 18.0.0 or higher.');
-  console.error(`Currently running on: ${process.version}`);
+  logger.error(`Runway requires Node.js version 18.0.0 or higher. (Current: ${process.version})`);
   process.exit(1);
 }
 
-// Proceed with CLI logic
-console.log('--- Runway CLI ---');
-console.log('Version: 0.1.0-alpha.1');
-console.log('Environment check: OK');
+const program = new Command();
+
+// Global configuration
+program
+  .name('runway')
+  .description(pkg.description)
+  .version(pkg.version);
+
+// Visual Header
+logger.printHeader(pkg.name, pkg.version);
+
+// Register commands
+program
+  .command('init')
+  .description('Initialize a new Runway configuration in the current directory')
+  .action(async () => {
+    await init();
+  });
+
+program
+  .command('create')
+  .description('Create a new migration file')
+  .argument('<name>', 'Name of the migration')
+  .action(async (name) => {
+    await create(name);
+  });
+
+program
+  .command('migrate')
+  .description('Run all pending migrations')
+  .option('-d, --dry-run', 'Show what would be executed without applying changes')
+  .action(async (options) => {
+    await migrate(options);
+  });
+
+program
+  .command('status')
+  .description('Show the current status of all migrations')
+  .action(async () => {
+    await status();
+  });
+
+program
+  .command('baseline')
+  .description('Mark the current state of the database as baselined')
+  .argument('<version>', 'Version to baseline to')
+  .action(async (version) => {
+    await baseline(version);
+  });
+
+// Handle unknown commands
+program.on('command:*', () => {
+  logger.error(`Invalid command: ${program.args.join(' ')}\nSee --help for a list of available commands.`);
+  process.exit(1);
+});
+
+program.parse(process.argv);
+
+// If no arguments, show help
+if (!process.argv.slice(2).length) {
+  program.outputHelp();
+}
