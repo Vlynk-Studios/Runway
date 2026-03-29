@@ -7,7 +7,7 @@
 
 import { Command } from 'commander';
 import { logger } from '../src/logger.js';
-import pkg from '../package.json' assert { type: 'json' };
+import pkg from '../package.json' with { type: 'json' };
 
 // Subcommands imports
 import { init } from '../src/commands/init.js';
