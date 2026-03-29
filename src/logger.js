@@ -4,42 +4,43 @@ const colors = {
   reset: '\x1b[0m',
   bright: '\x1b[1m',
   dim: '\x1b[2m',
-  underscore: '\x1b[4m',
-  blink: '\x1b[5m',
-  reverse: '\x1b[7m',
-  hidden: '\x1b[8m',
-  
-  fg: {
-    black: '\x1b[30m',
-    red: '\x1b[31m',
-    green: '\x1b[32m',
-    yellow: '\x1b[33m',
-    blue: '\x1b[34m',
-    magenta: '\x1b[35m',
-    cyan: '\x1b[36m',
-    white: '\x1b[37m',
-    crimson: '\x1b[38m',
-  },
-  bg: {
-    black: '\x1b[40m',
-    red: '\x1b[41m',
-    green: '\x1b[42m',
-    yellow: '\x1b[43m',
-    blue: '\x1b[44m',
-    magenta: '\x1b[45m',
-    cyan: '\x1b[46m',
-    white: '\x1b[47m',
-    crimson: '\x1b[48m',
-  }
+  cyan: '\x1b[36m',
+  yellow: '\x1b[33m',
+  red: '\x1b[31m',
+  green: '\x1b[32m',
+  magenta: '\x1b[35m'
+};
+
+const getTimestamp = () => {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  const hours = String(now.getHours()).padStart(2, '0');
+  const minutes = String(now.getMinutes()).padStart(2, '0');
+  const seconds = String(now.getSeconds()).padStart(2, '0');
+  return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+};
+
+const formatMessage = (level, color, message) => {
+  const timestamp = `${colors.dim}${getTimestamp()}${colors.reset}`;
+  const label = `${color}${level.toUpperCase().padEnd(7)}${colors.reset}`;
+  return `${timestamp} ${label} ${message}`;
 };
 
 export const logger = {
-  info: (msg) => console.log(`${colors.fg.cyan}[INFO]${colors.reset} ${msg}`),
-  warn: (msg) => console.log(`${colors.fg.yellow}[WARN]${colors.reset} ${msg}`),
-  error: (msg) => console.error(`${colors.fg.red}[ERROR]${colors.reset} ${msg}`),
-  success: (msg) => console.log(`${colors.fg.green}[SUCCESS]${colors.reset} ${msg}`),
-  header: (name, version) => {
-    console.log(`\n${colors.bright}${colors.fg.magenta}--- ${name} v${version} ---${colors.reset}`);
-    console.log(`${colors.dim}Environment: ${process.env.NODE_ENV || 'development'}${colors.reset}\n`);
+  info: (message) => console.log(formatMessage('info', colors.cyan, message)),
+  warn: (message) => console.log(formatMessage('warn', colors.yellow, message)),
+  error: (message) => console.error(formatMessage('error', colors.red, message)),
+  success: (message) => console.log(formatMessage('success', colors.green, message)),
+
+  printDivider: () => {
+    console.log(`${colors.dim}${'─'.repeat(50)}${colors.reset}`);
+  },
+
+  printHeader: (title = 'RUNWAY') => {
+    console.log('\n');
+    console.log(`${colors.bright}${colors.magenta}${title}${colors.reset}`);
+    logger.printDivider();
   }
 };
