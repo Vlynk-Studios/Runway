@@ -26,13 +26,21 @@ export async function migrate(options) {
 
   try {
     await adapter.connect();
-    
+
+    const dryRun = options.dryRun ?? false;
+
+    if (dryRun) {
+      logger.warn('Dry-run mode enabled — no changes will be applied to the database.');
+    }
+
     logger.info('Starting migration synchronization...');
-    const result = await runner.run();
+    const result = await runner.run({ dryRun });
 
     // 4. Print Summary
     logger.printDivider();
-    if (result.applied > 0) {
+    if (dryRun) {
+      logger.warn(`Dry-run complete. ${result.applied} migration(s) would be applied. No changes were made.`);
+    } else if (result.applied > 0) {
       logger.success('Database migration synchronized successfully! 🛫');
     } else {
       logger.info('Database is already up to date.');

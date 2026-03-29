@@ -16,7 +16,13 @@ export async function baseline(version) {
   const adapter = new PostgresAdapter(config);
   const logTable = new LogTable(config.schema);
 
-  logger.warn('BASELINE MODE: Marking migrations as applied WITHOUT executing SQL.');
+  logger.printDivider();
+  logger.warn('  ⚠️  BASELINE MODE ACTIVATED  ⚠️');
+  logger.warn('This will record migrations as applied WITHOUT executing any SQL.');
+  logger.warn('Use this ONLY once to synchronize an existing database with Runway');
+  logger.warn('that already contains the schema defined in these files.');
+  logger.printDivider();
+  console.log('');
 
   try {
     await adapter.connect();
@@ -61,8 +67,13 @@ export async function baseline(version) {
     
     await adapter.commit();
 
+    const alreadyApplied = files.length - pending.length;
+
     logger.printDivider();
-    logger.success('Baseline complete! The database state is now synchronized. ✓');
+    logger.success('Baseline process finished! ✓');
+    logger.info(`  ↷ Marked as applied : ${pending.length}`);
+    logger.info(`  ↷ Already registered : ${alreadyApplied}`);
+    logger.info('Run "runway status" to verify the current state.');
     console.log('\n');
 
   } catch (error) {

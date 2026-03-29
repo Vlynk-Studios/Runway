@@ -68,10 +68,19 @@ program
 
 program
   .command('baseline')
-  .description('Mark the current state of the database as baselined')
-  .argument('<version>', 'Version to baseline to')
+  .description('Mark the current state of the database as baselined without executing SQL')
+  .argument('[version]', 'Optional. Version prefix to baseline up to (e.g. 005)')
   .action(async (version) => {
     await baseline(version);
+  });
+
+program
+  .command('rollback')
+  .description('Revert the last migration applied (coming in v0.2.0)')
+  .action(async () => {
+    logger.warn('runway rollback is coming in v0.2.0');
+    logger.info('follow progress at github.com/vlynk-studios/runway');
+    console.log('');
   });
 
 // Handle unknown commands

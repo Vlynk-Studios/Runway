@@ -17,8 +17,10 @@ export class MigrationRunner {
   /**
    * Identifies and executes all pending migrations.
    * Performs an integrity check on previously applied migrations.
+   * @param {object} options
+   * @param {boolean} [options.dryRun=false] - If true, shows what would run without applying changes.
    */
-  async run() {
+  async run({ dryRun = false } = {}) {
     const summary = { applied: 0, skipped: 0, failed: 0 };
     const migrationsDir = path.resolve(process.cwd(), this.config.migrationsDir);
 
@@ -50,6 +52,13 @@ export class MigrationRunner {
           throw new Error(`Integrity violation: The file "${file}" has been modified after being applied.`);
         }
         summary.skipped++;
+        continue;
+      }
+
+      // Dry-run mode: show what would be executed, skip actual changes
+      if (dryRun) {
+        logger.warn(`[DRY-RUN] Would apply: ${file}`);
+        summary.applied++;
         continue;
       }
 
