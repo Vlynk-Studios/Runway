@@ -37,7 +37,7 @@ export class MigrationRunner {
 
     // Get files from the migrations directory
     const files = fs.readdirSync(migrationsDir)
-      .filter(f => /^\d+_.+\.sql$/.test(f))
+      .filter(f => /^\d+_.+\.sql$/.test(f) && !f.endsWith('.down.sql'))
       .sort();
 
     for (const file of files) {
@@ -89,5 +89,71 @@ export class MigrationRunner {
     }
 
     return summary;
+  }
+
+  /**
+   * Reverts the last migration applied to the database.
+   * @param {object} options
+   * @param {boolean} [options.dryRun=false] - If true, shows what would happen without applying changes.
+   */
+  async rollback({ dryRun = false } = {}) {
+    const migrationsDir = path.resolve(process.cwd(), this.config.migrationsDir);
+
+    if (!fs.existsSync(migrationsDir)) {
+      throw new Error(`Migrations directory not found: ${this.config.migrationsDir}`);
+    }
+
+    // Initialize the migrations log table
+    await this.logTable.ensureTable(this.adapter);
+
+    const applied = await this.logTable.getAppliedMigrations(this.adapter);
+    if (applied.length === 0) {
+      logger.info('No migrations have been applied yet. Nothing to rollback.');
+      return { rolledBack: 0 };
+    }
+
+    // Get the most recently applied migration
+    const lastMigration = applied[applied.length - 1];
+    const migrationName = lastMigration.name;
+
+    // Check for corresponding .down.sql file
+    const downFileName = migrationName.replace(/\.sql$/, '.down.sql');
+    const downFilePath = path.join(migrationsDir, downFileName);
+
+    if (!fs.existsSync(downFilePath)) {
+      throw new Error(
+        `Rollback failed: The rollback file "${downFileName}" was not found.\n` +
+        `Ensure you created the migration with rollback support.`
+      );
+    }
+
+    const content = fs.readFileSync(downFilePath, 'utf8');
+
+    if (dryRun) {
+      logger.warn(`[DRY-RUN] Would rollback: ${migrationName} using ${downFileName}`);
+      return { rolledBack: 1 };
+    }
+
+    logger.info(`Rolling back migration: ${migrationName}`);
+
+    try {
+      await this.adapter.begin();
+      await this.adapter.query(content);
+      await this.logTable.deleteMigration(this.adapter, migrationName);
+      await this.adapter.commit();
+
+      logger.success(`Success: Rolled back ${migrationName}`);
+      return { rolledBack: 1 };
+    } catch (error) {
+      await this.adapter.rollback();
+
+      let context = '';
+      if (error.position) context += ` (at character ${error.position})`;
+      if (error.detail) context += ` - ${error.detail}`;
+
+      logger.error(`Rollback failed for ${migrationName}${context}`);
+      logger.error(error.message);
+      throw error;
+    }
   }
 }

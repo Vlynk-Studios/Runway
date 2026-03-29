@@ -38,4 +38,12 @@ export class LogTable {
     const sql = `INSERT INTO ${this.tableName} (name, checksum) VALUES ($1, $2);`;
     await adapter.query(sql, [name, checksum]);
   }
+
+  /**
+   * Deletes a migration record from the log table.
+   */
+  async deleteMigration(adapter, name) {
+    const sql = `DELETE FROM ${this.tableName} WHERE name = $1;`;
+    await adapter.query(sql, [name]);
+  }
 }
