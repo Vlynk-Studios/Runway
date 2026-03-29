@@ -32,7 +32,7 @@ program
   .version(pkg.version);
 
 // Visual Header
-logger.header(pkg.name, pkg.version);
+logger.printHeader(pkg.name, pkg.version);
 
 // Register commands
 program

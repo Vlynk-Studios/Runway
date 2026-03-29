@@ -38,9 +38,9 @@ export const logger = {
     console.log(`${colors.dim}${'─'.repeat(50)}${colors.reset}`);
   },
 
-  printHeader: (title = 'RUNWAY') => {
+  printHeader: (name = 'RUNWAY', version = '') => {
     console.log('\n');
-    console.log(`${colors.bright}${colors.magenta}${title}${colors.reset}`);
+    console.log(`${colors.bright}${colors.magenta}${name}${version ? ' v' + version : ''}${colors.reset}`);
     logger.printDivider();
   }
 };
