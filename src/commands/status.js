@@ -26,9 +26,14 @@ export async function status() {
       throw new Error(`Migrations directory not found: ${config.migrationsDir}`);
     }
 
-    const files = fs.readdirSync(migrationsDir)
-      .filter(f => /^\d+_.+\.sql$/.test(f))
-      .sort();
+    const filesInDir = new Set(
+      fs.readdirSync(migrationsDir)
+        .filter(f => /^\d+_.+\.sql$/.test(f) && !f.endsWith('.down.sql'))
+    );
+
+    // Get all unique names from both disk and history
+    const allNames = new Set([...filesInDir, ...historyMap.keys()]);
+    const sortedNames = Array.from(allNames).sort();
 
     logger.info('Database Migration Status:');
     console.log('');
@@ -36,39 +41,50 @@ export async function status() {
     let appliedCount = 0;
     let rolledBackCount = 0;
     let pendingCount = 0;
+    let orphanCount = 0;
 
-    for (const file of files) {
-      const record = historyMap.get(file);
+    for (const name of sortedNames) {
+      const record = historyMap.get(name);
+      const existsOnDisk = filesInDir.has(name);
 
-      if (record && !record.rolled_back_at) {
-        // APPLIED: Record exists and no rollback timestamp
+      if (!existsOnDisk && record && !record.rolled_back_at) {
+        // ORPHAN: Applied in DB but file is gone
+        orphanCount++;
         appliedCount++;
         const dateStr = new Date(record.applied_at).toISOString().replace('T', ' ').split('.')[0];
-        console.log(`${colors.green}✓ ${file.padEnd(45)}${colors.reset} applied at ${dateStr}`);
+        console.log(`${colors.red}[!] ${name.padEnd(45)}${colors.reset} ${colors.bright}${colors.red}applied but missing on disk${colors.reset} (at ${dateStr})`);
+        continue;
+      }
+
+      if (record && !record.rolled_back_at) {
+        // APPLIED
+        appliedCount++;
+        const dateStr = new Date(record.applied_at).toISOString().replace('T', ' ').split('.')[0];
+        console.log(`${colors.green}[x] ${name.padEnd(45)}${colors.reset} applied at ${dateStr}`);
 
       } else if (record && record.rolled_back_at) {
-        // ROLLED BACK: Record exists but has rolled_back_at
+        // ROLLED BACK
         rolledBackCount++;
         const appliedAtStr = new Date(record.applied_at).toISOString().replace('T', ' ').split('.')[0];
         const rolledBackAtStr = new Date(record.rolled_back_at).toISOString().replace('T', ' ').split('.')[0];
-        console.log(`${colors.yellow}↺ ${file.padEnd(45)}${colors.reset} rolled back (Applied: ${appliedAtStr} | Rolled Back: ${rolledBackAtStr})`);
+        console.log(`${colors.yellow}[r] ${name.padEnd(45)}${colors.reset} rolled back (Applied: ${appliedAtStr} | Rolled Back: ${rolledBackAtStr})`);
 
-      } else {
-        // PENDING: No record in database
+      } else if (existsOnDisk) {
+        // PENDING
         pendingCount++;
-        console.log(`${colors.gray}↷ ${file.padEnd(45)} pending${colors.reset}`);
+        console.log(`${colors.gray}[ ] ${name.padEnd(45)} pending${colors.reset}`);
       }
     }
 
     logger.printDivider();
     logger.info('Summary:');
-    console.log(`${colors.green}  ✓ Applied     : ${appliedCount}${colors.reset}`);
-    console.log(`${colors.yellow}  ↺ Rolled back : ${rolledBackCount}${colors.reset}`);
+    console.log(`${colors.green}  [x] Applied     : ${appliedCount}${colors.reset}${orphanCount > 0 ? ` ${colors.red}(${orphanCount} missing on disk)${colors.reset}` : ''}`);
+    console.log(`${colors.yellow}  [r] Rolled back : ${rolledBackCount}${colors.reset}`);
     
     if (pendingCount > 0) {
-      console.log(`${colors.gray}  ↷ Pending     : ${pendingCount}${colors.reset} ${colors.dim}(Run 'runway migrate' to sync)${colors.reset}`);
+      console.log(`${colors.gray}  [ ] Pending     : ${pendingCount}${colors.reset} ${colors.dim}(Run 'runway migrate' to sync)${colors.reset}`);
     } else {
-      console.log(`${colors.gray}  ↷ Pending     : 0${colors.reset} ${colors.green}(Database is up to date)${colors.reset}`);
+      console.log(`${colors.gray}  [ ] Pending     : 0${colors.reset} ${colors.green}(Database is up to date)${colors.reset}`);
     }
     console.log('\n');
 

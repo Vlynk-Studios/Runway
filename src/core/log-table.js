@@ -4,7 +4,9 @@
 export class LogTable {
   constructor(schema = 'public') {
     this.schema = schema;
-    this.tableName = `"${schema}"."runway_migrations"`;
+    // Securely escape schema and table identifiers
+    const escapedSchema = schema.replace(/"/g, '""');
+    this.tableName = `"${escapedSchema}"."runway_migrations"`;
   }
 
   /**
@@ -37,10 +39,17 @@ export class LogTable {
   }
 
   /**
-   * Registers a new migration in the log table.
+   * Registers a new migration or updates an existing one (re-application after rollback).
    */
   async registerMigration(adapter, name, checksum) {
-    const sql = `INSERT INTO ${this.tableName} (name, checksum) VALUES ($1, $2);`;
+    const sql = `
+      INSERT INTO ${this.tableName} (name, checksum, applied_at, rolled_back_at) 
+      VALUES ($1, $2, CURRENT_TIMESTAMP, NULL)
+      ON CONFLICT (name) DO UPDATE SET 
+        checksum = EXCLUDED.checksum,
+        applied_at = CURRENT_TIMESTAMP,
+        rolled_back_at = NULL;
+    `;
     await adapter.query(sql, [name, checksum]);
   }
 
