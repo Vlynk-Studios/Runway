@@ -5,7 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.1] - 2026-03-29
+
+### Fixed
+- **Missing File** — restored the `.env.example` file in the project root which was accidentally removed during cleanup.
+
 ## [0.2.0] - 2026-03-29
+ Maryland
 
 ### Added
 - **Full Rollback Support** — implementation of `runway rollback` command to revert the last applied migration or multiple migrations using `--steps <n>`.
