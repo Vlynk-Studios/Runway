@@ -1,8 +1,10 @@
+import { logger } from '../logger.js';
+
 /**
- * Rollback command
- * v0.2.0
- * TODO: Implement migration rollback logic.
+ * Reverts the last migration applied to the database.
+ * // TODO: v0.2.0
  */
 export async function rollback() {
-  console.log('Rollback command is not yet implemented (scheduled for v0.2.0).');
+  logger.warn('The "rollback" command is coming in version v0.2.0!');
+  logger.info('Please visit our roadmap at https://github.com/vlynk-studios/runway for updates.');
 }

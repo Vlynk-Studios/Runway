@@ -1,7 +1,7 @@
 {
   "name": "@vlynk-studios/runway",
-  "version": "0.1.0-alpha.1",
-  "description": "Runway - A CLI tool for vlynk-studios projects",
+  "version": "0.1.0",
+  "description": "Runway — SQL migration CLI for Node.js and PostgreSQL",
   "type": "module",
   "main": "index.js",
   "bin": {
@@ -16,9 +16,16 @@
     "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js",
     "prepublishOnly": "npm run test && npm run lint"
   },
-  "keywords": [],
+  "keywords": ["migrations", "sql", "postgres", "postgresql", "cli", "database", "devtools"],
   "author": "Vlynk Studios And Keiver-Dev",
   "license": "MIT",
+  "files": [
+    "bin/",
+    "src/",
+    "README.md",
+    "LICENSE",
+    "CHANGELOG.md"
+  ],
   "dependencies": {
     "commander": "^14.0.3",
     "dotenv": "^17.3.1",
