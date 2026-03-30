@@ -38,10 +38,14 @@ describe('MigrationRunner', () => {
     const runner = new MigrationRunner(adapter, baseConfig);
 
     const result = await runner.run();
-
+    
     expect(result.applied).toBeGreaterThan(0);
     expect(result.skipped).toBe(0);
     expect(result.failed).toBe(0);
+    expect(result.details.length).toBe(result.applied);
+    expect(result.details[0]).toHaveProperty('duration');
+    expect(typeof result.details[0].duration).toBe('number');
+    
     expect(adapter._calls).toContain('BEGIN');
     expect(adapter._calls).toContain('COMMIT');
   });
@@ -101,5 +105,78 @@ describe('MigrationRunner', () => {
     });
 
     await expect(runner.run()).rejects.toThrow('Migrations directory not found');
+  });
+
+  it('reports zero applied migrations when everything is already up to date', async () => {
+    // Mock that all migrations are applied
+    const fs = await import('fs');
+    const { calculateChecksum } = await import('../src/core/checksum.js');
+    
+    const files = fs.readdirSync(fixturesDir).filter(f => /^\d+_.+\.sql$/.test(f)).sort();
+    const appliedRows = files.map(f => {
+      const content = fs.readFileSync(path.join(fixturesDir, f), 'utf8');
+      return { name: f, checksum: calculateChecksum(content) };
+    });
+
+    const adapter = createAdapter({ appliedRows });
+    const runner = new MigrationRunner(adapter, baseConfig);
+
+    const result = await runner.run();
+
+    expect(result.applied).toBe(0);
+    expect(result.skipped).toBe(files.length);
+  });
+
+  it('filters migrations correctly using from and to boundaries', async () => {
+    const fs = await import('fs');
+    const files = fs.readdirSync(fixturesDir).filter(f => /^\d+_.+\.sql$/.test(f)).sort();
+    
+    // Test 'to' boundary
+    let adapter = createAdapter({ appliedRows: [] });
+    let runner = new MigrationRunner(adapter, baseConfig);
+    let result = await runner.run({ to: 2 });
+    expect(result.applied).toBe(2);
+
+    // Test 'from' boundary
+    adapter = createAdapter({ appliedRows: [] });
+    runner = new MigrationRunner(adapter, baseConfig);
+    result = await runner.run({ from: 2 });
+    expect(result.applied).toBe(files.length - 1);
+
+    // Test 'from' and 'to' boundaries
+    adapter = createAdapter({ appliedRows: [] });
+    runner = new MigrationRunner(adapter, baseConfig);
+    result = await runner.run({ from: 2, to: 3 });
+    expect(result.applied).toBe(2);
+
+    // [RIGOROUS] Same from and to (single migration)
+    adapter = createAdapter({ appliedRows: [] });
+    runner = new MigrationRunner(adapter, baseConfig);
+    result = await runner.run({ from: 2, to: 2 });
+    expect(result.applied).toBe(1);
+
+    // [RIGOROUS] from > to (should apply 0)
+    adapter = createAdapter({ appliedRows: [] });
+    runner = new MigrationRunner(adapter, baseConfig);
+    result = await runner.run({ from: 3, to: 1 });
+    expect(result.applied).toBe(0);
+
+    // [RIGOROUS] String inputs for from/to
+    adapter = createAdapter({ appliedRows: [] });
+    runner = new MigrationRunner(adapter, baseConfig);
+    result = await runner.run({ from: '001', to: '1' });
+    expect(result.applied).toBe(1);
+
+    // [RIGOROUS] Range out of bounds (high)
+    adapter = createAdapter({ appliedRows: [] });
+    runner = new MigrationRunner(adapter, baseConfig);
+    result = await runner.run({ from: 100 });
+    expect(result.applied).toBe(0);
+
+    // [RIGOROUS] Range out of bounds (low)
+    adapter = createAdapter({ appliedRows: [] });
+    runner = new MigrationRunner(adapter, baseConfig);
+    result = await runner.run({ to: 0 });
+    expect(result.applied).toBe(0);
   });
 });

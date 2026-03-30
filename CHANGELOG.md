@@ -5,13 +5,28 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.0] - 2026-03-30
+
+### Added
+- **Interactive `runway init`** — a guided onboarding process that detects database presence, validates PostgreSQL URLs, and manages `.env` configuration (appending vs. creating) safely.
+- **`runway validate`** — new command to verify SHA-256 checksums of all applied migrations against their files on disk, without executing any SQL. Reports the expected vs. actual checksum on mismatch with a clear, actionable message.
+- **`runway migrate --from <n>` / `--to <n>`** — version range filters to restrict a migration run to a specific window of files.
+- **Semantic connection error messages** — connection failures from PostgreSQL are now classified by root cause (host unreachable, auth failure, database not found, SSL error) and presented with specific remediation guidance. No raw stack traces are exposed.
+- **SQL line-number reporting** — when a migration SQL statement fails, Runway reports the exact line number inside the file (derived from pg's character position offset) alongside the error message.
+- **`DATABASE_URL` format validation** — if `DATABASE_URL` does not start with `postgresql://` or `postgres://`, Runway exits early with a clear format hint instead of forwarding a cryptic pg error.
+- **Pure ASCII UI Standard** — migration of all CLI indicators and icons to 100% English ASCII (e.g. `[OK]`, `[x]`, `*`) for maximum terminal compatibility, removing all Unicode emojis.
+
+### Changed
+- `runway create <name>` now converts spaces in the name to hyphens automatically and logs the full relative path of the created file on success.
+- README updated: interactive `init` flow, `runway validate`, `--from`/`--to` flags, and new ASCII status indicators.
+- **Enhanced test suite** — achieved 96% coverage for the initialization flow and hardened E2E status workflows.
+
 ## [0.2.1] - 2026-03-29
 
 ### Fixed
 - **Missing File** — restored the `.env.example` file in the project root which was accidentally removed during cleanup.
 
 ## [0.2.0] - 2026-03-29
- Maryland
 
 ### Added
 - **Full Rollback Support** — implementation of `runway rollback` command to revert the last applied migration or multiple migrations using `--steps <n>`.
