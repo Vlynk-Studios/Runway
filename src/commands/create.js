@@ -47,38 +47,28 @@ export async function create(name) {
   const sanitizedName = name
     .toLowerCase()
     .trim()
-    .replace(/\s+/g, '_')           // Spaces to underscores
-    .replace(/[^a-z0-9_]/g, '');    // Remove special characters
+    .replace(/\s+/g, '-')           // Spaces to hyphens
+    .replace(/[^a-z0-9-]/g, '');    // Remove special characters (except hyphens)
   
   const upFileName = `${prefix}_${sanitizedName}.sql`;
   const downFileName = `${prefix}_${sanitizedName}.down.sql`;
   
   const upFilePath = path.join(migrationsDir, upFileName);
   const downFilePath = path.join(migrationsDir, downFileName);
-
-  // 4. Prepare SQL templates
-  const timestamp = new Date().toISOString().replace('T', ' ').substring(0, 19);
   
-  const upContent = `-- Migration: ${name} (UP)
--- Created: ${timestamp}
-
--- Write your UP migration SQL here
-`;
-
-  const downContent = `-- Migration: ${name} (DOWN)
--- Created: ${timestamp}
-
--- Write your DOWN migration SQL here
-`;
+  // (Omitted: SQL templates generation logic remains the same)
+  const timestamp = new Date().toISOString().replace('T', ' ').substring(0, 19);
+  const upContent = `-- Migration: ${name} (UP)\n-- Created: ${timestamp}\n\n-- Write your UP migration SQL here\n`;
+  const downContent = `-- Migration: ${name} (DOWN)\n-- Created: ${timestamp}\n\n-- Write your DOWN migration SQL here\n`;
 
   // 5. Write files and log result
   try {
     fs.writeFileSync(upFilePath, upContent, 'utf8');
     fs.writeFileSync(downFilePath, downContent, 'utf8');
     
-    logger.success(`Created migration: ${chalk.bold(prefix + '_' + sanitizedName)}`);
-    console.log(chalk.gray(`  UP:   ${upFileName}`));
-    console.log(chalk.gray(`  DOWN: ${downFileName}`));
+    // Requested format: ✔ Migration creada — migrations/003_add-roles-table.sql
+    const relativePath = path.join(config.migrationsDir, upFileName).replace(/\\/g, '/');
+    logger.success(`Migration creada — ${chalk.bold(relativePath)}`);
     
     logger.suggest('runway up');
   } catch (error) {

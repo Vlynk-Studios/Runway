@@ -19,9 +19,11 @@ export class MigrationRunner {
    * Identifies and executes all pending migrations.
    * Performs an integrity check on previously applied migrations.
    * @param {object} options
-   * @param {boolean} [options.dryRun=false] - If true, shows what would run without applying changes.
+   * @param {boolean} [options.dryRun=false]
+   * @param {number|string} [options.from] - Only run migrations starting from this version (inclusive).
+   * @param {number|string} [options.to] - Only run migrations up to this version (inclusive).
    */
-  async run({ dryRun = false } = {}) {
+  async run({ dryRun = false, from = null, to = null } = {}) {
     const summary = { applied: 0, skipped: 0, failed: 0, details: [] };
     const migrationsDir = path.resolve(process.cwd(), this.config.migrationsDir);
 
@@ -38,9 +40,18 @@ export class MigrationRunner {
     const appliedMap = new Map(activeApplied.map(m => [m.name, m.checksum]));
 
     // Get files from the migrations directory
-    const files = fs.readdirSync(migrationsDir)
+    const allFiles = fs.readdirSync(migrationsDir)
       .filter(f => /^\d+_.+\.sql$/.test(f) && !f.endsWith('.down.sql'))
       .sort();
+
+    // Apply version filtering if provided
+    const fromVal = from !== null ? parseInt(from, 10) : -Infinity;
+    const toVal = to !== null ? parseInt(to, 10) : Infinity;
+
+    const files = allFiles.filter(f => {
+      const version = parseInt(f.split('_')[0], 10);
+      return version >= fromVal && version <= toVal;
+    });
 
     for (const file of files) {
       const content = fs.readFileSync(path.join(migrationsDir, file), 'utf8');
@@ -94,6 +105,47 @@ export class MigrationRunner {
     }
 
     return summary;
+  }
+
+  /**
+   * Performs an integrity check on all migrations recorded as applied in the database.
+   * Throws an error if any file is missing or has a checksum mismatch.
+   */
+  async validate() {
+    const migrationsDir = path.resolve(process.cwd(), this.config.migrationsDir);
+    
+    // 1. Initialize and get history
+    await this.logTable.ensureTable(this.adapter);
+    const history = await this.logTable.getAppliedMigrations(this.adapter);
+    const activeApplied = history.filter(m => !m.rolled_back_at);
+
+    if (activeApplied.length === 0) {
+      logger.info('No migrations have been applied yet. Nothing to validate.');
+      return true;
+    }
+
+    // 2. Cross-reference with disk
+    for (const record of activeApplied) {
+      const filePath = path.join(migrationsDir, record.name);
+      
+      if (!fs.existsSync(filePath)) {
+        throw new Error(`Validation failed: Applied migration "${record.name}" is missing on disk.`);
+      }
+
+      const content = fs.readFileSync(filePath, 'utf8');
+      const currentChecksum = calculateChecksum(content);
+
+      if (currentChecksum !== record.checksum) {
+        throw new Error(
+          `Validation failed: Checksum mismatch for applied migration "${record.name}".\n` +
+          `Expected: ${record.checksum}\n` +
+          `Actual:   ${currentChecksum}\n` +
+          `This file has been modified after being applied to the database.`
+        );
+      }
+    }
+
+    return true;
   }
 
   /**

@@ -23,15 +23,22 @@ export async function migrate(options) {
     spinner.text = 'Checking migration status...';
 
     const dryRun = options.dryRun ?? false;
+    const from = options.from ?? null;
+    const to = options.to ?? null;
 
     if (dryRun) {
       spinner.stop();
       logger.warn('Dry-run mode enabled - no changes will be applied to the database.');
     } else {
-      spinner.text = 'Running migrations...';
+      let rangeMsg = 'Running migrations...';
+      if (from && to) rangeMsg = `Running migrations from ${from} to ${to}...`;
+      else if (from) rangeMsg = `Running migrations from ${from}...`;
+      else if (to) rangeMsg = `Running migrations up to ${to}...`;
+      
+      spinner.text = rangeMsg;
     }
 
-    const result = await runner.run({ dryRun });
+    const result = await runner.run({ dryRun, from, to });
     spinner.stop();
 
     // 3. Print Summary

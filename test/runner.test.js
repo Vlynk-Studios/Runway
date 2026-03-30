@@ -126,4 +126,27 @@ describe('MigrationRunner', () => {
     expect(result.applied).toBe(0);
     expect(result.skipped).toBe(files.length);
   });
+
+  it('filters migrations correctly using from and to boundaries', async () => {
+    const fs = await import('fs');
+    const files = fs.readdirSync(fixturesDir).filter(f => /^\d+_.+\.sql$/.test(f)).sort();
+    
+    // Test 'to' boundary
+    let adapter = createAdapter({ appliedRows: [] });
+    let runner = new MigrationRunner(adapter, baseConfig);
+    let result = await runner.run({ to: 2 });
+    expect(result.applied).toBe(2);
+
+    // Test 'from' boundary
+    adapter = createAdapter({ appliedRows: [] });
+    runner = new MigrationRunner(adapter, baseConfig);
+    result = await runner.run({ from: 2 });
+    expect(result.applied).toBe(files.length - 1);
+
+    // Test 'from' and 'to' boundaries
+    adapter = createAdapter({ appliedRows: [] });
+    runner = new MigrationRunner(adapter, baseConfig);
+    result = await runner.run({ from: 2, to: 3 });
+    expect(result.applied).toBe(2);
+  });
 });
