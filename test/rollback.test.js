@@ -115,4 +115,20 @@ describe('MigrationRunner - Rollback', () => {
     expect(adapter._calls).toContain('ROLLBACK');
     expect(adapter._calls).not.toContain('COMMIT');
   });
+
+  it('[RIGOROUS] handle steps larger than applied migrations', async () => {
+    // We have 2 applied migrations in the mock
+    const result = await runner.rollback({ steps: 10 });
+    
+    expect(result.rolledBack).toBe(2);
+    expect(adapter._applied.length).toBe(0);
+  });
+
+  it('[RIGOROUS] handle 0 steps requested', async () => {
+    const result = await runner.rollback({ steps: 0 });
+    
+    expect(result.rolledBack).toBe(0);
+    expect(adapter._applied.length).toBe(2);
+    expect(adapter._calls).not.toContain('BEGIN');
+  });
 });

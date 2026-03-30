@@ -5,6 +5,28 @@ import { pathToFileURL } from 'url';
 import { logger } from './logger.js';
 
 /**
+ * Resolves the environment file path based on CLI flags, environment variables, or config.
+ */
+function resolveEnvPath() {
+  const args = process.argv;
+  const envFlagIndex = args.findIndex(arg => arg === '--env' || arg === '-e');
+  
+  if (envFlagIndex !== -1 && args[envFlagIndex + 1]) {
+    return args[envFlagIndex + 1];
+  }
+  
+  if (process.env.RUNWAY_ENV) {
+    return process.env.RUNWAY_ENV;
+  }
+  
+  return null; // Will fallback to .env after loading config if needed
+}
+
+// 1. Initial Environment Load (Early detection from CLI/Env Var)
+const initialEnvPath = resolveEnvPath();
+dotenv.config({ path: initialEnvPath || '.env' });
+
+/**
  * Attempts to load runway.config.js from the current working directory.
  */
 async function loadConfigFile() {
@@ -24,15 +46,13 @@ async function loadConfigFile() {
   return {};
 }
 
-// Load user config from file
+// 2. Load user config from file
 const userConfig = await loadConfigFile();
 
-// Determine variables path from user config or default to .env
-const isTest = process.env.NODE_ENV === 'test';
-const envFilePath = isTest && userConfig.testEnvFile ? userConfig.testEnvFile : (userConfig.envFile || '.env');
-
-// Initialize environment variables ASAP
-dotenv.config({ path: envFilePath });
+// 3. Re-initialize environment if config specify a different path and no override was provided
+if (!initialEnvPath && userConfig.envFile && userConfig.envFile !== '.env') {
+  dotenv.config({ path: userConfig.envFile, override: true });
+}
 
 /**
  * Resolved configuration object for Runway.
@@ -59,13 +79,28 @@ export const config = {
  */
 export function validateDatabaseConfig() {
   const { database } = config;
-  
+
   const hasUrl = !!database.url;
   const hasFullCredentials = !!(database.host && database.user && database.database);
-  
+
   if (!hasUrl && !hasFullCredentials) {
     logger.error('Missing database configuration.');
-    logger.info('Please specify a connection via DATABASE_URL or by providing DB_HOST, DB_USER, and DB_NAME.');
+    logger.info(
+      'Provide a connection via DATABASE_URL or by setting DB_HOST, DB_USER, and DB_NAME.',
+    );
     process.exit(1);
+  }
+
+  // Validate DATABASE_URL format early to avoid cryptic pg errors at connect time
+  if (hasUrl) {
+    const validSchemes = /^(postgres|postgresql):\/\//i;
+    if (!validSchemes.test(database.url)) {
+      logger.error('Invalid DATABASE_URL format.');
+      logger.info(
+        'Expected format: postgresql://user:password@host:port/dbname\n' +
+        `Received:        ${database.url.slice(0, 60)}${database.url.length > 60 ? '...' : ''}`,
+      );
+      process.exit(1);
+    }
   }
 }

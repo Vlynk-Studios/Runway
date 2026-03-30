@@ -1,5 +1,5 @@
-import dotenv from 'dotenv';
-import path from 'path';
+import ora from 'ora';
+import chalk from 'chalk';
 import { config, validateDatabaseConfig } from '../config.js';
 import { logger } from '../logger.js';
 import { PostgresAdapter } from '../core/adapter/postgres.js';
@@ -7,55 +7,55 @@ import { MigrationRunner } from '../core/runner.js';
 
 /**
  * Migration command handler.
- * Coordinates environment loading, DB connection, and the runner.
+ * Coordinates DB connection and the runner.
  */
 export async function migrate(options) {
-  // 1. Support for custom --env file
-  if (options.env) {
-    const envPath = path.resolve(process.cwd(), options.env);
-    dotenv.config({ path: envPath, override: true });
-    logger.info(`Using environment file: ${options.env}`);
-  }
-
-  // 2. Validate database configuration
+  // 1. Validate database configuration
   validateDatabaseConfig();
 
-  // 3. Initialize Adapter & Runner
+  // 2. Initialize Adapter & Runner
+  const spinner = ora('Establishing database connection...').start();
   const adapter = new PostgresAdapter(config);
   const runner = new MigrationRunner(adapter, config);
 
   try {
     await adapter.connect();
+    spinner.text = 'Checking migration status...';
 
     const dryRun = options.dryRun ?? false;
+    const from = options.from ?? null;
+    const to = options.to ?? null;
 
     if (dryRun) {
-      logger.warn('Dry-run mode enabled — no changes will be applied to the database.');
-    }
-
-    logger.info('Starting migration synchronization...');
-    const result = await runner.run({ dryRun });
-
-    // 4. Print Summary
-    logger.printDivider();
-    if (dryRun) {
-      logger.warn(`Dry-run complete. ${result.applied} migration(s) would be applied. No changes were made.`);
-    } else if (result.applied > 0) {
-      logger.success('Database migration synchronized successfully!');
+      spinner.stop();
+      logger.warn('Dry-run mode enabled - no changes will be applied to the database.');
     } else {
-      logger.info('Database is already up to date.');
+      let rangeMsg = 'Running migrations...';
+      if (from && to) rangeMsg = `Running migrations from ${from} to ${to}...`;
+      else if (from) rangeMsg = `Running migrations from ${from}...`;
+      else if (to) rangeMsg = `Running migrations up to ${to}...`;
+      
+      spinner.text = rangeMsg;
     }
 
-    // Display summary as a formatted table
-    console.table({
-      'Applied Migrations': result.applied,
-      'Skipped (Already Applied)': result.skipped,
-      'Failed': result.failed
-    });
+    const result = await runner.run({ dryRun, from, to });
+    spinner.stop();
+
+    // 3. Print Summary
+    if (result.applied > 0) {
+      console.log(`\n${chalk.green.bold(result.applied)} migration(s) executed successfully`);
+      logger.suggest('runway status');
+    } else if (!dryRun) {
+      logger.info('No pending migrations found.');
+    } else {
+      logger.info(`${result.applied} migration(s) would be applied.`);
+    }
+
     console.log('\n');
 
   } catch (error) {
-    logger.error(`Migration command failed: ${error.message}`);
+    spinner.fail('Migration cycle failed');
+    logger.error(error.message);
     process.exit(1);
   } finally {
     // Ensure the connection is always closed

@@ -1,5 +1,8 @@
 import fs from 'fs';
 import path from 'path';
+import ora from 'ora';
+import chalk from 'chalk';
+import boxen from 'boxen';
 import { config, validateDatabaseConfig } from '../config.js';
 import { logger } from '../logger.js';
 import { PostgresAdapter } from '../core/adapter/postgres.js';
@@ -12,73 +15,90 @@ import { calculateChecksum } from '../core/checksum.js';
  */
 export async function baseline(version) {
   validateDatabaseConfig();
-  
+
+  const warning = boxen(
+    chalk.bold.yellow('! BASELINE MODE ACTIVATED !') +
+      '\n\n' +
+      chalk.yellow(
+        'This will record migrations as applied WITHOUT executing any SQL.\n' +
+          'Use this ONLY to synchronize an existing database with Runway.',
+      ),
+    {
+      padding: 1,
+      borderStyle: 'double',
+      borderColor: 'yellow',
+      margin: { top: 1, bottom: 1 },
+    },
+  );
+  console.log(warning);
+
   const adapter = new PostgresAdapter(config);
   const logTable = new LogTable(config.schema);
-
-  logger.printDivider();
-  logger.warn('  ! BASELINE MODE ACTIVATED !');
-  logger.warn('This will record migrations as applied WITHOUT executing any SQL.');
-  logger.warn('Use this ONLY once to synchronize an existing database with Runway');
-  logger.warn('that already contains the schema defined in these files.');
-  logger.printDivider();
-  console.log('');
+  const spinner = ora('Initializing baseline...').start();
 
   try {
     await adapter.connect();
     await logTable.ensureTable(adapter);
 
     const applied = await logTable.getAppliedMigrations(adapter);
-    const appliedSet = new Set(applied.map(m => m.name));
+    const appliedSet = new Set(applied.map((m) => m.name));
 
     const migrationsDir = path.resolve(process.cwd(), config.migrationsDir);
     if (!fs.existsSync(migrationsDir)) {
-      throw new Error(`Migrations directory not found: ${config.migrationsDir}`);
+      throw new Error(
+        `Migrations directory not found: ${config.migrationsDir}`,
+      );
     }
 
-    const files = fs.readdirSync(migrationsDir)
-      .filter(f => /^\d+_.+\.sql$/.test(f))
+    const files = fs
+      .readdirSync(migrationsDir)
+      .filter((f) => /^\d+_.+\.sql$/.test(f))
       .sort();
 
     // Determine target files based on version (if provided)
-    const targetFiles = version 
-      ? files.filter(f => parseInt(f.split('_')[0], 10) <= parseInt(version, 10))
+    const targetFiles = version
+      ? files.filter(
+          (f) => parseInt(f.split('_')[0], 10) <= parseInt(version, 10),
+        )
       : files;
 
-    const pending = targetFiles.filter(f => !appliedSet.has(f));
+    const pending = targetFiles.filter((f) => !appliedSet.has(f));
 
     if (pending.length === 0) {
+      spinner.stop();
       logger.info('No new migrations to baseline.');
       return;
     }
 
-    logger.info(`Registering ${pending.length} migration(s) as baselined...`);
+    spinner.text = `Registering ${pending.length} migration(s) as baselined...`;
 
     // Use a transaction for the entire baseline process
     await adapter.begin();
-    
+
     for (const file of pending) {
       const content = fs.readFileSync(path.join(migrationsDir, file), 'utf8');
       const checksum = calculateChecksum(content);
-      
+
       await logTable.registerMigration(adapter, file, checksum);
-      logger.success(`[x] ${file} — marked as applied`);
     }
-    
+
     await adapter.commit();
+    spinner.stop();
 
     const alreadyApplied = files.length - pending.length;
 
-    logger.printDivider();
-    logger.success('Baseline process finished!');
-    logger.info(`  * Marked as applied : ${pending.length}`);
-    logger.info(`  * Already registered : ${alreadyApplied}`);
-    logger.info('Run "runway status" to verify the current state.');
-    console.log('\n');
+    console.log(chalk.bold('\nBaseline process finished!'));
+    console.log(
+      `${chalk.green('[OK]')} Marked as applied  : ${chalk.bold(pending.length)}`,
+    );
+    console.log(`${chalk.gray('*')} Already registered : ${alreadyApplied}`);
 
+    logger.suggest('runway status');
+    console.log('\n');
   } catch (error) {
+    spinner.fail('Baseline failed');
     if (adapter) await adapter.rollback();
-    logger.error(`Baseline command failed: ${error.message}`);
+    logger.error(error.message);
     process.exit(1);
   } finally {
     await adapter.end();

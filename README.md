@@ -10,10 +10,13 @@ Runway is a lightweight, reliable, and transactional SQL migration CLI for Node.
 - **Transactional** — every migration runs inside its own transaction. If it fails, it rolls back cleanly.
 - **Full Rollback Support** — easily revert applied migrations with multi-step support.
 - **Integrity Checks** — SHA-256 checksums detect if an applied migration file is modified after the fact.
+- **Integrity Validation** — `runway validate` cross-checks every applied migration against its recorded checksum without running SQL.
 - **Cross-platform Consistent** — automatic line ending normalization (CRLF/LF) for team workflows.
 - **Dry-run mode** — preview what would be applied without touching the database.
-- **Minimal footprint** — only 3 production dependencies: `pg`, `commander`, and `dotenv`.
-- **Flexible config** — `runway.config.js` with multi-environment support.
+- **Version range control** — `--from` and `--to` flags to run only a specific range of migrations.
+- **Minimal footprint** - only 7 production dependencies: `pg`, `commander`, `dotenv`, `chalk`, `ora`, `boxen`, and `inquirer`.
+- **Flexible config** - `runway.config.js` with multi-environment support and guided initialization.
+- **Pure ASCII UI** - 100% terminal-friendly with standardized English ASCII icons (No emojis).
 
 ## Installation
 
@@ -106,16 +109,58 @@ export default {
 
 | Command | Description |
 | :--- | :--- |
-| `runway init` | Bootstrap Runway in the current directory. |
-| `runway create <name>` | Generate a new numbered migration file (`NNN_name.sql`). |
-| `runway migrate` | Run all pending migrations in order. |
+| `runway init` | Interactive guided setup to bootstrap Runway in the current directory. |
+| `runway create <name>` | Generate a new numbered migration file (`NNN_name.sql`). Spaces in `<name>` are converted to hyphens automatically. |
+| `runway migrate` | Run all pending migrations in order. Alias: `runway up`. |
+| `runway migrate --from <n>` | Run only migrations starting from version `n` (inclusive). |
+| `runway migrate --to <n>` | Run only migrations up to version `n` (inclusive). |
 | `runway migrate --dry-run` | Preview what would be applied without touching the DB. |
 | `runway migrate --env <path>` | Use a custom environment file for this run. |
+| `runway validate` | Verify the checksum of every applied migration without running SQL. |
 | `runway status` | Show all migrations with their state and timestamps. |
 | `runway baseline [version]` | Mark existing migrations as applied without running SQL. |
 | `runway rollback` | Revert the last applied migration. |
 | `runway rollback --steps <n>` | Revert multiple migrations in order. |
 | `runway rollback --dry-run` | Preview what would be reverted without touching the DB. |
+
+## Use Cases
+
+### New project
+
+Starting a greenfield project with Runway:
+
+```bash
+# Bootstrap the project
+runway init
+
+# Create migrations as your schema evolves
+runway create create_users_table
+runway create add_email_index
+
+# Apply to the database
+runway migrate
+
+# Verify everything is consistent
+runway validate
+```
+
+### Existing database onboarding
+
+You already have a production database and want to bring it under Runway's control:
+
+```bash
+# Your migrations directory already reflects the current schema.
+# Register them as applied without re-running the SQL:
+runway baseline
+
+# From this point on, new migrations are managed normally
+runway create add_roles_table
+runway migrate
+
+# Audit integrity at any time
+runway validate
+runway status
+```
 
 ## Migration Files
 
@@ -131,14 +176,15 @@ migrations/
 
 `runway create <name>` handles both file creation and numbering automatically.
 
-## Status Indicators
+The `runway status` command uses the following ASCII indicators for maximum compatibility:
 
-The `runway status` command uses the following indicators for clarity:
-
-- `[x]` **Applied**: Migration has been successfully executed in the database.
-- `[r]` **Rolled Back**: Migration was previously applied but has since been reverted.
-- `[ ]` **Pending**: Migration file exists locally but has not been applied yet.
-- `[!]` **Orphan**: Migration is recorded as applied in the database but the file is missing from disk.
+- `[APPLIED]` Migration has been successfully executed in the database.
+- `[REVERTED]` Migration was previously applied but has since been rolled back.
+- `[PENDING]` Migration file exists locally but has not been applied yet.
+- `[ORPHAN ]` Migration is recorded as applied in the database but the file is missing from disk.
+- `[OK]` General success indicator for step-level operations.
+- `[x]` Summary indicator for applied migrations.
+- `[ ]` Summary indicator for pending migrations.
 
 ## Baseline
 

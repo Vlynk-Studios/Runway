@@ -1,5 +1,6 @@
 import fs from 'fs';
 import path from 'path';
+import { performance } from 'perf_hooks';
 import { LogTable } from './log-table.js';
 import { calculateChecksum } from './checksum.js';
 import { logger } from '../logger.js';
@@ -18,10 +19,12 @@ export class MigrationRunner {
    * Identifies and executes all pending migrations.
    * Performs an integrity check on previously applied migrations.
    * @param {object} options
-   * @param {boolean} [options.dryRun=false] - If true, shows what would run without applying changes.
+   * @param {boolean} [options.dryRun=false]
+   * @param {number|string} [options.from] - Only run migrations starting from this version (inclusive).
+   * @param {number|string} [options.to] - Only run migrations up to this version (inclusive).
    */
-  async run({ dryRun = false } = {}) {
-    const summary = { applied: 0, skipped: 0, failed: 0 };
+  async run({ dryRun = false, from = null, to = null } = {}) {
+    const summary = { applied: 0, skipped: 0, failed: 0, details: [] };
     const migrationsDir = path.resolve(process.cwd(), this.config.migrationsDir);
 
     if (!fs.existsSync(migrationsDir)) {
@@ -37,9 +40,18 @@ export class MigrationRunner {
     const appliedMap = new Map(activeApplied.map(m => [m.name, m.checksum]));
 
     // Get files from the migrations directory
-    const files = fs.readdirSync(migrationsDir)
+    const allFiles = fs.readdirSync(migrationsDir)
       .filter(f => /^\d+_.+\.sql$/.test(f) && !f.endsWith('.down.sql'))
       .sort();
+
+    // Apply version filtering if provided
+    const fromVal = from !== null ? parseInt(from, 10) : -Infinity;
+    const toVal = to !== null ? parseInt(to, 10) : Infinity;
+
+    const files = allFiles.filter(f => {
+      const version = parseInt(f.split('_')[0], 10);
+      return version >= fromVal && version <= toVal;
+    });
 
     for (const file of files) {
       const content = fs.readFileSync(path.join(migrationsDir, file), 'utf8');
@@ -66,30 +78,71 @@ export class MigrationRunner {
       // Execute the migration
       logger.info(`Applying migration: ${file}`);
       
+      const startTime = performance.now();
       try {
         await this.adapter.begin();
         await this.adapter.query(content);
         await this.logTable.registerMigration(this.adapter, file, checksum);
         await this.adapter.commit();
         
-        logger.success(`Success: ${file}`);
+        const duration = performance.now() - startTime;
         summary.applied++;
+        summary.details.push({ name: file, duration });
+        
+        logger.stepSuccess(file, duration);
       } catch (error) {
         await this.adapter.rollback();
-        
-        // Detailed error context for PostgreSQL
-        let context = '';
-        if (error.position) context += ` (at character ${error.position})`;
-        if (error.detail) context += ` - ${error.detail}`;
-        
-        logger.error(`Migration failed: ${file}${context}`);
-        logger.error(error.message);
+
+        // Build a clean, actionable error - no raw stack traces exposed
+        const context = MigrationRunner._buildSqlContext(error, content);
+        const cleanMessage = `Migration "${file}" failed${context}: ${error.message}`;
         summary.failed++;
-        throw error;
+        throw new Error(cleanMessage, { cause: error });
       }
     }
 
     return summary;
+  }
+
+  /**
+   * Performs an integrity check on all migrations recorded as applied in the database.
+   * Throws an error if any file is missing or has a checksum mismatch.
+   */
+  async validate() {
+    const migrationsDir = path.resolve(process.cwd(), this.config.migrationsDir);
+    
+    // 1. Initialize and get history
+    await this.logTable.ensureTable(this.adapter);
+    const history = await this.logTable.getAppliedMigrations(this.adapter);
+    const activeApplied = history.filter(m => !m.rolled_back_at);
+
+    if (activeApplied.length === 0) {
+      logger.info('No migrations have been applied yet. Nothing to validate.');
+      return true;
+    }
+
+    // 2. Cross-reference with disk
+    for (const record of activeApplied) {
+      const filePath = path.join(migrationsDir, record.name);
+      
+      if (!fs.existsSync(filePath)) {
+        throw new Error(`Validation failed: Applied migration "${record.name}" is missing on disk.`);
+      }
+
+      const content = fs.readFileSync(filePath, 'utf8');
+      const currentChecksum = calculateChecksum(content);
+
+      if (currentChecksum !== record.checksum) {
+        throw new Error(
+          `Validation failed: Checksum mismatch for applied migration "${record.name}".\n` +
+          `Expected: ${record.checksum}\n` +
+          `Actual:   ${currentChecksum}\n` +
+          `This file has been modified after being applied to the database.`
+        );
+      }
+    }
+
+    return true;
   }
 
   /**
@@ -172,5 +225,31 @@ export class MigrationRunner {
     }
 
     return summary;
+  }
+
+  /**
+   * Builds a human-readable context string from a pg SQL error.
+   * Extracts the line number from error.position (character offset) so the
+   * developer can jump directly to the offending line in the migration file.
+   *
+   * @param {Error} error  - The pg error object.
+   * @param {string} sql   - The full SQL string that was executed.
+   * @returns {string}     - Context string, e.g. " (line 7, detail: ...)"
+   */
+  static _buildSqlContext(error, sql = '') {
+    const parts = [];
+
+    if (error.position && sql) {
+      // pg gives a 1-based character offset; count newlines before that position
+      const charIndex = parseInt(error.position, 10) - 1;
+      const lineNumber = (sql.substring(0, charIndex).match(/\n/g) || []).length + 1;
+      parts.push(`line ${lineNumber}`);
+    }
+
+    if (error.detail) {
+      parts.push(error.detail);
+    }
+
+    return parts.length > 0 ? ` (${parts.join(' - ')})` : '';
   }
 }
