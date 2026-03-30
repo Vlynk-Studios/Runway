@@ -148,5 +148,35 @@ describe('MigrationRunner', () => {
     runner = new MigrationRunner(adapter, baseConfig);
     result = await runner.run({ from: 2, to: 3 });
     expect(result.applied).toBe(2);
+
+    // [RIGOROUS] Same from and to (single migration)
+    adapter = createAdapter({ appliedRows: [] });
+    runner = new MigrationRunner(adapter, baseConfig);
+    result = await runner.run({ from: 2, to: 2 });
+    expect(result.applied).toBe(1);
+
+    // [RIGOROUS] from > to (should apply 0)
+    adapter = createAdapter({ appliedRows: [] });
+    runner = new MigrationRunner(adapter, baseConfig);
+    result = await runner.run({ from: 3, to: 1 });
+    expect(result.applied).toBe(0);
+
+    // [RIGOROUS] String inputs for from/to
+    adapter = createAdapter({ appliedRows: [] });
+    runner = new MigrationRunner(adapter, baseConfig);
+    result = await runner.run({ from: '001', to: '1' });
+    expect(result.applied).toBe(1);
+
+    // [RIGOROUS] Range out of bounds (high)
+    adapter = createAdapter({ appliedRows: [] });
+    runner = new MigrationRunner(adapter, baseConfig);
+    result = await runner.run({ from: 100 });
+    expect(result.applied).toBe(0);
+
+    // [RIGOROUS] Range out of bounds (low)
+    adapter = createAdapter({ appliedRows: [] });
+    runner = new MigrationRunner(adapter, baseConfig);
+    result = await runner.run({ to: 0 });
+    expect(result.applied).toBe(0);
   });
 });

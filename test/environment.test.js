@@ -48,11 +48,13 @@ describe('Environment Detection', () => {
        throw new Error('process.exit');
     });
     
-    // Clear all DB-related env vars
+    // 51:
+    // Clear all DB-related env vars and prevent loading real .env
     delete process.env.DATABASE_URL;
     delete process.env.DB_HOST;
     delete process.env.DB_USER;
     delete process.env.DB_NAME;
+    process.env.RUNWAY_ENV = '.env.nonexistent'; // Point to a file that doesn't exist
 
     const { validateDatabaseConfig } = await import(`../src/config.js?test=exit_${Date.now()}`);
     
