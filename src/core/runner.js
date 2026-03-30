@@ -1,5 +1,6 @@
 import fs from 'fs';
 import path from 'path';
+import { performance } from 'perf_hooks';
 import { LogTable } from './log-table.js';
 import { calculateChecksum } from './checksum.js';
 import { logger } from '../logger.js';
@@ -21,7 +22,7 @@ export class MigrationRunner {
    * @param {boolean} [options.dryRun=false] - If true, shows what would run without applying changes.
    */
   async run({ dryRun = false } = {}) {
-    const summary = { applied: 0, skipped: 0, failed: 0 };
+    const summary = { applied: 0, skipped: 0, failed: 0, details: [] };
     const migrationsDir = path.resolve(process.cwd(), this.config.migrationsDir);
 
     if (!fs.existsSync(migrationsDir)) {
@@ -66,14 +67,18 @@ export class MigrationRunner {
       // Execute the migration
       logger.info(`Applying migration: ${file}`);
       
+      const startTime = performance.now();
       try {
         await this.adapter.begin();
         await this.adapter.query(content);
         await this.logTable.registerMigration(this.adapter, file, checksum);
         await this.adapter.commit();
         
-        logger.success(`Success: ${file}`);
+        const duration = performance.now() - startTime;
         summary.applied++;
+        summary.details.push({ name: file, duration });
+        
+        logger.stepSuccess(file, duration);
       } catch (error) {
         await this.adapter.rollback();
         

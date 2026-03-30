@@ -1,7 +1,9 @@
 import fs from 'fs';
 import path from 'path';
+import ora from 'ora';
+import chalk from 'chalk';
 import { config, validateDatabaseConfig } from '../config.js';
-import { logger, colors } from '../logger.js';
+import { logger } from '../logger.js';
 import { PostgresAdapter } from '../core/adapter/postgres.js';
 import { LogTable } from '../core/log-table.js';
 
@@ -11,6 +13,7 @@ import { LogTable } from '../core/log-table.js';
 export async function status() {
   validateDatabaseConfig();
   
+  const spinner = ora('Fetching database status...').start();
   const adapter = new PostgresAdapter(config);
   const logTable = new LogTable(config.schema);
 
@@ -19,6 +22,8 @@ export async function status() {
     await logTable.ensureTable(adapter);
 
     const history = await logTable.getAppliedMigrations(adapter);
+    spinner.stop();
+
     const historyMap = new Map(history.map(m => [m.name, m]));
 
     const migrationsDir = path.resolve(process.cwd(), config.migrationsDir);
@@ -35,8 +40,7 @@ export async function status() {
     const allNames = new Set([...filesInDir, ...historyMap.keys()]);
     const sortedNames = Array.from(allNames).sort();
 
-    logger.info('Database Migration Status:');
-    console.log('');
+    console.log(chalk.bold('\nDatabase Migration Status:\n'));
 
     let appliedCount = 0;
     let rolledBackCount = 0;
@@ -52,7 +56,7 @@ export async function status() {
         orphanCount++;
         appliedCount++;
         const dateStr = new Date(record.applied_at).toISOString().replace('T', ' ').split('.')[0];
-        console.log(`${colors.red}[!] ${name.padEnd(45)}${colors.reset} ${colors.bright}${colors.red}applied but missing on disk${colors.reset} (at ${dateStr})`);
+        console.log(`${chalk.red('[!]')} ${name.padEnd(45)} ${chalk.bold.red('applied but missing on disk')} ${chalk.gray(`(at ${dateStr})`)}`);
         continue;
       }
 
@@ -60,36 +64,38 @@ export async function status() {
         // APPLIED
         appliedCount++;
         const dateStr = new Date(record.applied_at).toISOString().replace('T', ' ').split('.')[0];
-        console.log(`${colors.green}[x] ${name.padEnd(45)}${colors.reset} applied at ${dateStr}`);
+        console.log(`${chalk.green('[x]')} ${name.padEnd(45)} ${chalk.gray(`applied at ${dateStr}`)}`);
 
       } else if (record && record.rolled_back_at) {
         // ROLLED BACK
         rolledBackCount++;
         const appliedAtStr = new Date(record.applied_at).toISOString().replace('T', ' ').split('.')[0];
         const rolledBackAtStr = new Date(record.rolled_back_at).toISOString().replace('T', ' ').split('.')[0];
-        console.log(`${colors.yellow}[r] ${name.padEnd(45)}${colors.reset} rolled back (Applied: ${appliedAtStr} | Rolled Back: ${rolledBackAtStr})`);
+        console.log(`${chalk.yellow('[r]')} ${name.padEnd(45)} ${chalk.yellow('rolled back')} ${chalk.gray(`(Applied: ${appliedAtStr} | Rolled Back: ${rolledBackAtStr})`)}`);
 
       } else if (existsOnDisk) {
         // PENDING
         pendingCount++;
-        console.log(`${colors.gray}[ ] ${name.padEnd(45)} pending${colors.reset}`);
+        console.log(`${chalk.dim('[ ]')} ${name.padEnd(45)} ${chalk.dim('pending')}`);
       }
     }
 
     logger.printDivider();
-    logger.info('Summary:');
-    console.log(`${colors.green}  [x] Applied     : ${appliedCount}${colors.reset}${orphanCount > 0 ? ` ${colors.red}(${orphanCount} missing on disk)${colors.reset}` : ''}`);
-    console.log(`${colors.yellow}  [r] Rolled back : ${rolledBackCount}${colors.reset}`);
+    console.log(chalk.bold('Summary:'));
+    console.log(`${chalk.green('  [x]')} Applied     : ${appliedCount}${orphanCount > 0 ? ` ${chalk.red(`(${orphanCount} missing on disk)`)}` : ''}`);
+    console.log(`${chalk.yellow('  [r]')} Rolled back : ${rolledBackCount}`);
     
     if (pendingCount > 0) {
-      console.log(`${colors.gray}  [ ] Pending     : ${pendingCount}${colors.reset} ${colors.dim}(Run 'runway migrate' to sync)${colors.reset}`);
+      console.log(`${chalk.white('  [ ]')} Pending     : ${pendingCount} ${chalk.dim("(Run 'runway migrate' to sync)")}`);
+      logger.suggest('runway migrate');
     } else {
-      console.log(`${colors.gray}  [ ] Pending     : 0${colors.reset} ${colors.green}(Database is up to date)${colors.reset}`);
+      console.log(`${chalk.gray('  [ ]')} Pending     : 0 ${chalk.green('(Database is up to date)')}`);
     }
     console.log('\n');
 
   } catch (error) {
-    logger.error(`Status command failed: ${error.message}`);
+    spinner.fail('Failed to fetch status');
+    logger.error(error.message);
     process.exit(1);
   } finally {
     await adapter.end();

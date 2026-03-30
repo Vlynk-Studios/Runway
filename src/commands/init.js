@@ -2,7 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import inquirer from 'inquirer';
-import { logger, colors } from '../logger.js';
+import { logger } from '../logger.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -59,13 +59,12 @@ export async function init() {
 
   // 4. Final Logs
   if (configFileReady) {
-    console.log(`${colors.green}*${colors.reset}  runway.config.js created`);
+    logger.success('runway.config.js created');
   }
 
   if (migrationsDirReady) {
-    console.log(`${colors.green}*${colors.reset}  migrations/ directory ready`);
+    logger.success('migrations/ directory ready');
   }
 
-  console.log(`\nTo create your first migration:`);
-  console.log(`${colors.cyan}>${colors.reset}  runway create create-users-table\n`);
+  logger.suggest('runway create create-users-table');
 }

@@ -1,5 +1,7 @@
 import dotenv from 'dotenv';
 import path from 'path';
+import ora from 'ora';
+import chalk from 'chalk';
 import { config, validateDatabaseConfig } from '../config.js';
 import { logger } from '../logger.js';
 import { PostgresAdapter } from '../core/adapter/postgres.js';
@@ -20,44 +22,37 @@ export async function rollback(options) {
   validateDatabaseConfig();
 
   // 3. Initialize Adapter & Runner
+  const spinner = ora('Establishing database connection...').start();
   const adapter = new PostgresAdapter(config);
   const runner = new MigrationRunner(adapter, config);
 
   try {
     await adapter.connect();
+    spinner.text = 'Rolling back migrations...';
 
     const dryRun = options.dryRun ?? false;
     const steps = parseInt(options.steps || '1', 10);
 
     if (dryRun) {
+      spinner.stop();
       logger.warn('Dry-run mode enabled - no changes will be applied to the database.');
     }
 
-    if (steps > 1) {
-      logger.info(`Initiating rollback of the last ${steps} migrations...`);
-    } else {
-      logger.info('Initiating rollback of the last migration...');
-    }
-
     const result = await runner.rollback({ dryRun, steps });
+    spinner.stop();
 
     // 4. Print Summary
-    logger.printDivider();
-    if (dryRun) {
-      if (result.rolledBack > 0) {
-        logger.warn(`Dry-run complete. ${result.rolledBack} migration(s) would be rolled back. No changes were made.`);
-      } else {
-        logger.info('nothing would be rolled back.');
-      }
-    } else if (result.rolledBack > 0) {
-      logger.success(`${result.rolledBack} migration(s) rolled back successfully!`);
+    if (result.rolledBack > 0) {
+      console.log(`\n${chalk.yellow.bold(result.rolledBack)} migration(s) rolled back successfully`);
+      logger.suggest('runway status');
     } else {
       logger.info('No migrations were rolled back.');
     }
 
     console.log('\n');
   } catch (error) {
-    logger.error(`Rollback command failed: ${error.message}`);
+    spinner.fail('Rollback cycle failed');
+    logger.error(error.message);
     process.exit(1);
   } finally {
     // Ensure the connection is always closed

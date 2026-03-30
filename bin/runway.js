@@ -24,22 +24,20 @@ if (major < 18) {
   process.exit(1);
 }
 
+// 1. Initial configuration
 const program = new Command();
 
-// Global configuration
 program
   .name('runway')
   .description(pkg.description)
   .version(pkg.version);
 
-// Visual Header
-logger.printHeader(pkg.name, pkg.version);
-
-// Register commands
+// 2. Command Registration
 program
   .command('init')
   .description('Initialize a new Runway configuration in the current directory')
   .action(async () => {
+    logger.printHeader(pkg.name, pkg.version);
     await init();
   });
 
@@ -85,7 +83,7 @@ program
     await rollback(options);
   });
 
-// Handle unknown commands
+// 3. Global error handling and execution
 program.on('command:*', () => {
   logger.error(`Invalid command: ${program.args.join(' ')}\nSee --help for a list of available commands.`);
   process.exit(1);

@@ -1,5 +1,6 @@
 import fs from 'fs';
 import path from 'path';
+import chalk from 'chalk';
 import { config } from '../config.js';
 import { logger } from '../logger.js';
 
@@ -21,7 +22,7 @@ export async function create(name) {
   // 1. Ensure the migrations directory exists
   if (!fs.existsSync(migrationsDir)) {
     logger.error(`Migrations directory not found: ${config.migrationsDir}`);
-    logger.info('Run "runway init" to bootstrap the project structure.');
+    logger.suggest('runway init');
     process.exit(1);
   }
 
@@ -75,10 +76,11 @@ export async function create(name) {
     fs.writeFileSync(upFilePath, upContent, 'utf8');
     fs.writeFileSync(downFilePath, downContent, 'utf8');
     
-    logger.success(`Successfully created migration: ${prefix}_${sanitizedName}`);
-    logger.info(`  UP:   ${upFilePath}`);
-    logger.info(`  DOWN: ${downFilePath}`);
-    console.log('\n');
+    logger.success(`Created migration: ${chalk.bold(prefix + '_' + sanitizedName)}`);
+    console.log(chalk.gray(`  UP:   ${upFileName}`));
+    console.log(chalk.gray(`  DOWN: ${downFileName}`));
+    
+    logger.suggest('runway migrate');
   } catch (error) {
     logger.error(`Could not write migration files: ${error.message}`);
     process.exit(1);
