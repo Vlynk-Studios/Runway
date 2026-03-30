@@ -79,13 +79,28 @@ export const config = {
  */
 export function validateDatabaseConfig() {
   const { database } = config;
-  
+
   const hasUrl = !!database.url;
   const hasFullCredentials = !!(database.host && database.user && database.database);
-  
+
   if (!hasUrl && !hasFullCredentials) {
     logger.error('Missing database configuration.');
-    logger.info('Please specify a connection via DATABASE_URL or by providing DB_HOST, DB_USER, and DB_NAME.');
+    logger.info(
+      'Provide a connection via DATABASE_URL or by setting DB_HOST, DB_USER, and DB_NAME.',
+    );
     process.exit(1);
+  }
+
+  // Validate DATABASE_URL format early to avoid cryptic pg errors at connect time
+  if (hasUrl) {
+    const validSchemes = /^(postgres|postgresql):\/\//i;
+    if (!validSchemes.test(database.url)) {
+      logger.error('Invalid DATABASE_URL format.');
+      logger.info(
+        'Expected format: postgresql://user:password@host:port/dbname\n' +
+        `Received:        ${database.url.slice(0, 60)}${database.url.length > 60 ? '…' : ''}`,
+      );
+      process.exit(1);
+    }
   }
 }

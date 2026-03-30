@@ -92,15 +92,12 @@ export class MigrationRunner {
         logger.stepSuccess(file, duration);
       } catch (error) {
         await this.adapter.rollback();
-        
-        // Enrich the error with migration context
-        let context = '';
-        if (error.position) context += ` (at character ${error.position})`;
-        if (error.detail) context += ` - ${error.detail}`;
-        
-        error.message = `Migration "${file}" failed${context}: ${error.message}`;
+
+        // Build a clean, actionable error — no raw stack traces exposed
+        const context = MigrationRunner._buildSqlContext(error, content);
+        const cleanMessage = `Migration "${file}" failed${context}: ${error.message}`;
         summary.failed++;
-        throw error;
+        throw new Error(cleanMessage, { cause: error });
       }
     }
 
@@ -228,5 +225,31 @@ export class MigrationRunner {
     }
 
     return summary;
+  }
+
+  /**
+   * Builds a human-readable context string from a pg SQL error.
+   * Extracts the line number from error.position (character offset) so the
+   * developer can jump directly to the offending line in the migration file.
+   *
+   * @param {Error} error  - The pg error object.
+   * @param {string} sql   - The full SQL string that was executed.
+   * @returns {string}     - Context string, e.g. " (line 7, detail: ...)"
+   */
+  static _buildSqlContext(error, sql = '') {
+    const parts = [];
+
+    if (error.position && sql) {
+      // pg gives a 1-based character offset; count newlines before that position
+      const charIndex = parseInt(error.position, 10) - 1;
+      const lineNumber = (sql.substring(0, charIndex).match(/\n/g) || []).length + 1;
+      parts.push(`line ${lineNumber}`);
+    }
+
+    if (error.detail) {
+      parts.push(error.detail);
+    }
+
+    return parts.length > 0 ? ` (${parts.join(' — ')})` : '';
   }
 }

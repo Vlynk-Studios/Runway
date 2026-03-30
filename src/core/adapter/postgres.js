@@ -36,7 +36,7 @@ export class PostgresAdapter extends BaseAdapter {
       this.client = new Client(clientConfig);
       await this.client.connect();
     } catch (error) {
-      throw new Error(`Failed to connect to PostgreSQL: ${error.message}`, { cause: error });
+      throw new Error(PostgresAdapter._classifyConnectionError(error), { cause: error });
     }
   }
 
@@ -79,5 +79,64 @@ export class PostgresAdapter extends BaseAdapter {
       await this.client.end();
       this.client = null;
     }
+  }
+
+  /**
+   * Translates a raw pg/Node connection error into a clear, actionable message.
+   * Never leaks internal stack traces to the user.
+   * @param {Error} error - The original error thrown during connect().
+   * @returns {string}
+   */
+  static _classifyConnectionError(error) {
+    const code = error.code;
+    const msg = error.message || '';
+
+    // Network-level errors
+    if (code === 'ECONNREFUSED') {
+      return (
+        `Connection refused — the database server is not reachable at the configured host/port.\n` +
+        `Check that DB_HOST and DB_PORT (or DATABASE_URL) are correct and the server is running.`
+      );
+    }
+    if (code === 'ENOTFOUND' || code === 'EAI_AGAIN') {
+      return (
+        `Host not found — could not resolve the database hostname.\n` +
+        `Verify that DB_HOST (or the host in DATABASE_URL) is spelled correctly.`
+      );
+    }
+    if (code === 'ETIMEDOUT') {
+      return (
+        `Connection timed out — the database server did not respond in time.\n` +
+        `Check your network, firewall rules, and DB_HOST / DB_PORT settings.`
+      );
+    }
+
+    // PostgreSQL auth / database errors (SQLSTATE codes)
+    if (code === '28P01' || code === '28000') {
+      return (
+        `Authentication failed — the provided credentials were rejected by PostgreSQL.\n` +
+        `Check DB_USER and DB_PASSWORD (or the credentials in DATABASE_URL).`
+      );
+    }
+    if (code === '3D000') {
+      return (
+        `Database not found — PostgreSQL does not have a database with that name.\n` +
+        `Check DB_NAME (or the database name in DATABASE_URL).`
+      );
+    }
+    if (code === '57P03') {
+      return `The database server is starting up — please try again in a moment.`;
+    }
+
+    // SSL errors
+    if (msg.toLowerCase().includes('ssl')) {
+      return (
+        `SSL connection error — the server may not support SSL, or the certificate is invalid.\n` +
+        `Try setting DB_SSL=false or verifying your SSL configuration.`
+      );
+    }
+
+    // Fallback: clean message without stack
+    return `Failed to connect to PostgreSQL: ${msg}`;
   }
 }
