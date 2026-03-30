@@ -42,6 +42,13 @@ export async function status() {
 
     console.log(chalk.bold('\nDatabase Migration Status:\n'));
 
+    // Table Header
+    const colStatus = 'STATUS'.padEnd(12);
+    const colMigration = 'MIGRATION'.padEnd(45);
+    const colInfo = 'INFORMATION';
+    console.log(chalk.gray(`${colStatus} | ${colMigration} | ${colInfo}`));
+    console.log(chalk.gray(`${'-'.repeat(12)}-+-${'-'.repeat(45)}-+-${'-'.repeat(30)}`));
+
     let appliedCount = 0;
     let rolledBackCount = 0;
     let pendingCount = 0;
@@ -51,33 +58,48 @@ export async function status() {
       const record = historyMap.get(name);
       const existsOnDisk = filesInDir.has(name);
 
+      let statusRaw = '';
+      let statusStyled = '';
+      let info = '';
+
       if (!existsOnDisk && record && !record.rolled_back_at) {
         // ORPHAN: Applied in DB but file is gone
+        statusRaw = '[ORPHAN ]';
+        statusStyled = chalk.bold.red(statusRaw);
         orphanCount++;
         appliedCount++;
         const dateStr = new Date(record.applied_at).toISOString().replace('T', ' ').split('.')[0];
-        console.log(`${chalk.red('[!]')} ${name.padEnd(45)} ${chalk.bold.red('applied but missing on disk')} ${chalk.gray(`(at ${dateStr})`)}`);
-        continue;
-      }
+        info = chalk.red(`Missing on disk (applied ${dateStr})`);
 
-      if (record && !record.rolled_back_at) {
+      } else if (record && !record.rolled_back_at) {
         // APPLIED
+        statusRaw = '[APPLIED]';
+        statusStyled = chalk.green(statusRaw);
         appliedCount++;
         const dateStr = new Date(record.applied_at).toISOString().replace('T', ' ').split('.')[0];
-        console.log(`${chalk.green('[x]')} ${name.padEnd(45)} ${chalk.gray(`applied at ${dateStr}`)}`);
+        info = chalk.gray(`applied at ${dateStr}`);
 
       } else if (record && record.rolled_back_at) {
-        // ROLLED BACK
+        // ROLLED BACK (REVERTED)
+        statusRaw = '[REVERTED]';
+        statusStyled = chalk.yellow(statusRaw);
         rolledBackCount++;
-        const appliedAtStr = new Date(record.applied_at).toISOString().replace('T', ' ').split('.')[0];
-        const rolledBackAtStr = new Date(record.rolled_back_at).toISOString().replace('T', ' ').split('.')[0];
-        console.log(`${chalk.yellow('[r]')} ${name.padEnd(45)} ${chalk.yellow('rolled back')} ${chalk.gray(`(Applied: ${appliedAtStr} | Rolled Back: ${rolledBackAtStr})`)}`);
+        if (existsOnDisk) {
+          pendingCount++;
+          info = chalk.yellow('rolled back (pending re-run)');
+        } else {
+          info = chalk.gray('rolled back (missing on disk)');
+        }
 
       } else if (existsOnDisk) {
         // PENDING
+        statusRaw = '[PENDING]';
+        statusStyled = chalk.cyan.dim(statusRaw);
         pendingCount++;
-        console.log(`${chalk.dim('[ ]')} ${name.padEnd(45)} ${chalk.dim('pending')}`);
+        info = chalk.dim('ready to apply');
       }
+
+      console.log(`${statusStyled.padEnd(12 + (statusStyled.length - statusRaw.length))} | ${name.padEnd(45)} | ${info}`);
     }
 
     logger.printDivider();
@@ -86,8 +108,8 @@ export async function status() {
     console.log(`${chalk.yellow('  [r]')} Rolled back : ${rolledBackCount}`);
     
     if (pendingCount > 0) {
-      console.log(`${chalk.white('  [ ]')} Pending     : ${pendingCount} ${chalk.dim("(Run 'runway migrate' to sync)")}`);
-      logger.suggest('runway migrate');
+      console.log(`${chalk.cyan('  [ ]')} Pending     : ${pendingCount} ${chalk.dim("(Run 'runway up' to sync)")}`);
+      logger.suggest('runway up');
     } else {
       console.log(`${chalk.gray('  [ ]')} Pending     : 0 ${chalk.green('(Database is up to date)')}`);
     }

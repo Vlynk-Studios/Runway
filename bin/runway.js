@@ -50,8 +50,9 @@ program
   });
 
 program
-  .command('migrate')
-  .description('Run all pending migrations')
+  .command('up')
+  .description('Alias for migrate: run all pending migrations')
+  .alias('migrate')
   .option('-e, --env <path>', 'Specify a custom .env file path')
   .option('-d, --dry-run', 'Show what would be executed without applying changes')
   .action(async (options) => {

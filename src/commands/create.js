@@ -80,7 +80,7 @@ export async function create(name) {
     console.log(chalk.gray(`  UP:   ${upFileName}`));
     console.log(chalk.gray(`  DOWN: ${downFileName}`));
     
-    logger.suggest('runway migrate');
+    logger.suggest('runway up');
   } catch (error) {
     logger.error(`Could not write migration files: ${error.message}`);
     process.exit(1);

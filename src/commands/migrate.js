@@ -39,7 +39,7 @@ export async function migrate(options) {
       console.log(`\n${chalk.green.bold(result.applied)} migration(s) executed successfully`);
       logger.suggest('runway status');
     } else if (!dryRun) {
-      logger.info('Database is already up to date.');
+      logger.info('No pending migrations found.');
     } else {
       logger.info(`${result.applied} migration(s) would be applied.`);
     }

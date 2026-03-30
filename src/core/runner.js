@@ -82,13 +82,12 @@ export class MigrationRunner {
       } catch (error) {
         await this.adapter.rollback();
         
-        // Detailed error context for PostgreSQL
+        // Enrich the error with migration context
         let context = '';
         if (error.position) context += ` (at character ${error.position})`;
         if (error.detail) context += ` - ${error.detail}`;
         
-        logger.error(`Migration failed: ${file}${context}`);
-        logger.error(error.message);
+        error.message = `Migration "${file}" failed${context}: ${error.message}`;
         summary.failed++;
         throw error;
       }

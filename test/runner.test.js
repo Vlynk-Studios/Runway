@@ -106,4 +106,24 @@ describe('MigrationRunner', () => {
 
     await expect(runner.run()).rejects.toThrow('Migrations directory not found');
   });
+
+  it('reports zero applied migrations when everything is already up to date', async () => {
+    // Mock that all migrations are applied
+    const fs = await import('fs');
+    const { calculateChecksum } = await import('../src/core/checksum.js');
+    
+    const files = fs.readdirSync(fixturesDir).filter(f => /^\d+_.+\.sql$/.test(f)).sort();
+    const appliedRows = files.map(f => {
+      const content = fs.readFileSync(path.join(fixturesDir, f), 'utf8');
+      return { name: f, checksum: calculateChecksum(content) };
+    });
+
+    const adapter = createAdapter({ appliedRows });
+    const runner = new MigrationRunner(adapter, baseConfig);
+
+    const result = await runner.run();
+
+    expect(result.applied).toBe(0);
+    expect(result.skipped).toBe(files.length);
+  });
 });
