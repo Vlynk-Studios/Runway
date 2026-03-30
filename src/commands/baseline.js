@@ -89,7 +89,7 @@ export async function baseline(version) {
 
     console.log(chalk.bold('\nBaseline process finished!'));
     console.log(
-      `${chalk.green('*')} Marked as applied  : ${chalk.bold(pending.length)}`,
+      `${chalk.green('[OK]')} Marked as applied  : ${chalk.bold(pending.length)}`,
     );
     console.log(`${chalk.gray('*')} Already registered : ${alreadyApplied}`);
 

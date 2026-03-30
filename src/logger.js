@@ -17,8 +17,8 @@ export const logger = {
    * Displays a stylized success message with execution timing.
    */
   stepSuccess: (name, duration) => {
-    const icon = chalk.green('✔');
-    console.log(`  ${icon} ${chalk.bold(name).padEnd(30)} ${chalk.gray(`${duration}ms`)}`);
+    const icon = chalk.green('[OK]');
+    console.log(` ${icon} ${chalk.bold(name).padEnd(30)} ${chalk.gray(`${duration}ms`)}`);
   },
 
   /**

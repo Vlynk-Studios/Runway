@@ -66,9 +66,9 @@ export async function create(name) {
     fs.writeFileSync(upFilePath, upContent, 'utf8');
     fs.writeFileSync(downFilePath, downContent, 'utf8');
     
-    // Requested format: ✔ Migration creada — migrations/003_add-roles-table.sql
+    // Requested format: * Migration created - migrations/003_add-roles-table.sql
     const relativePath = path.join(config.migrationsDir, upFileName).replace(/\\/g, '/');
-    logger.success(`Migration creada — ${chalk.bold(relativePath)}`);
+    logger.success(`Migration created - ${chalk.bold(relativePath)}`);
     
     logger.suggest('runway up');
   } catch (error) {

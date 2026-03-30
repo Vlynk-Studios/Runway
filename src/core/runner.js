@@ -93,7 +93,7 @@ export class MigrationRunner {
       } catch (error) {
         await this.adapter.rollback();
 
-        // Build a clean, actionable error — no raw stack traces exposed
+        // Build a clean, actionable error - no raw stack traces exposed
         const context = MigrationRunner._buildSqlContext(error, content);
         const cleanMessage = `Migration "${file}" failed${context}: ${error.message}`;
         summary.failed++;
@@ -250,6 +250,6 @@ export class MigrationRunner {
       parts.push(error.detail);
     }
 
-    return parts.length > 0 ? ` (${parts.join(' — ')})` : '';
+    return parts.length > 0 ? ` (${parts.join(' - ')})` : '';
   }
 }

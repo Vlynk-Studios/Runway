@@ -14,8 +14,9 @@ Runway is a lightweight, reliable, and transactional SQL migration CLI for Node.
 - **Cross-platform Consistent** — automatic line ending normalization (CRLF/LF) for team workflows.
 - **Dry-run mode** — preview what would be applied without touching the database.
 - **Version range control** — `--from` and `--to` flags to run only a specific range of migrations.
-- **Minimal footprint** — only 5 production dependencies: `pg`, `commander`, `dotenv`, `chalk`, and `ora`.
-- **Flexible config** — `runway.config.js` with multi-environment support.
+- **Minimal footprint** - only 7 production dependencies: `pg`, `commander`, `dotenv`, `chalk`, `ora`, `boxen`, and `inquirer`.
+- **Flexible config** - `runway.config.js` with multi-environment support and guided initialization.
+- **Pure ASCII UI** - 100% terminal-friendly with standardized English ASCII icons (No emojis).
 
 ## Installation
 
@@ -108,7 +109,7 @@ export default {
 
 | Command | Description |
 | :--- | :--- |
-| `runway init` | Bootstrap Runway in the current directory. |
+| `runway init` | Interactive guided setup to bootstrap Runway in the current directory. |
 | `runway create <name>` | Generate a new numbered migration file (`NNN_name.sql`). Spaces in `<name>` are converted to hyphens automatically. |
 | `runway migrate` | Run all pending migrations in order. Alias: `runway up`. |
 | `runway migrate --from <n>` | Run only migrations starting from version `n` (inclusive). |
@@ -175,14 +176,15 @@ migrations/
 
 `runway create <name>` handles both file creation and numbering automatically.
 
-## Status Indicators
-
-The `runway status` command uses the following indicators for clarity:
+The `runway status` command uses the following ASCII indicators for maximum compatibility:
 
 - `[APPLIED]` Migration has been successfully executed in the database.
 - `[REVERTED]` Migration was previously applied but has since been rolled back.
 - `[PENDING]` Migration file exists locally but has not been applied yet.
-- `[ORPHAN]` Migration is recorded as applied in the database but the file is missing from disk.
+- `[ORPHAN ]` Migration is recorded as applied in the database but the file is missing from disk.
+- `[OK]` General success indicator for step-level operations.
+- `[x]` Summary indicator for applied migrations.
+- `[ ]` Summary indicator for pending migrations.
 
 ## Baseline
 

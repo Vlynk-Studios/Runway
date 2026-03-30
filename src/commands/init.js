@@ -2,6 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import inquirer from 'inquirer';
+import chalk from 'chalk';
 import { logger } from '../logger.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -18,19 +19,41 @@ export async function init() {
   const migrationsDir = path.join(cwd, 'migrations');
   const configFile = path.join(cwd, 'runway.config.js');
 
-  // Source template paths (relative to this script)
+  // Source template paths (relative to this script) - ensured resilience
   const configTemplate = path.resolve(__dirname, '../templates/runway.config.js');
 
+  logger.printHeader('INIT');
+  console.log(chalk.bold("Welcome to Runway! Let's get your project staged.\n"));
+
   // 1. Interactive Prompt
-  await inquirer.prompt([
+  const answers = await inquirer.prompt([
     {
-      type: 'list',
-      name: 'projectType',
-      message: 'Is this a new project or an existing database?',
-      choices: [
-        { name: 'New project', value: 'new' },
-        { name: 'Existing database', value: 'existing' }
-      ]
+      type: 'confirm',
+      name: 'hasDatabase',
+      message: 'Do you already have a database?',
+      default: true
+    },
+    {
+      type: 'confirm',
+      name: 'setupEnv',
+      message: 'Do you want to set up your database connection now? (Creates/updates .env file)',
+      default: true,
+      when: (answers) => answers.hasDatabase
+    },
+    {
+      type: 'input',
+      name: 'dbUrl',
+      message: 'Enter your database connection URL:',
+      when: (answers) => answers.setupEnv,
+      validate: (input) => {
+        const trimmed = input.trim();
+        if (trimmed === '') return 'Database URL cannot be empty.';
+        if (!trimmed.startsWith('postgres://') && !trimmed.startsWith('postgresql://')) {
+          return 'URL must start with postgres:// or postgresql://';
+        }
+        return true;
+      },
+      default: 'postgresql://postgres:postgres@localhost:5432/postgres'
     }
   ]);
 
@@ -40,31 +63,82 @@ export async function init() {
     try {
       fs.mkdirSync(migrationsDir, { recursive: true });
     } catch (error) {
-      logger.error(`Failed to create migrations directory: ${error.message}`);
+      logger.error(`Critical: Could not create migrations directory at ${migrationsDir}`);
+      logger.error(`Reason: ${error.message}`);
       migrationsDirReady = false;
     }
+  } else {
+    logger.info('migrations/ directory already exists. Skipping creation.');
   }
 
   // 3. Generate runway.config.js
   let configFileReady = true;
   if (!fs.existsSync(configFile)) {
     try {
-      const content = fs.readFileSync(configTemplate, 'utf-8');
+      if (!fs.existsSync(configTemplate)) {
+         throw new Error(`Template not found at ${configTemplate}`);
+      }
+
+      let content = fs.readFileSync(configTemplate, 'utf-8');
+      
+      // If we got the URL, let's make sure it's uncommented in the config.
+      if (answers.setupEnv && answers.dbUrl) {
+         content = content.replace(/\/\/\s*url:\s*process\.env\.DATABASE_URL/, 'url: process.env.DATABASE_URL');
+      }
+
       fs.writeFileSync(configFile, content);
     } catch (error) {
-      logger.error(`Failed to generate runway.config.js: ${error.message}`);
+      logger.error(`Critical: Could not generate runway.config.js`);
+      logger.error(`Reason: ${error.message}`);
       configFileReady = false;
+    }
+  } else {
+    logger.info('runway.config.js already exists. Skipping generation.');
+  }
+
+  // 4. Handle `.env` file setup
+  if (answers.setupEnv && answers.dbUrl) {
+    const envFile = path.join(cwd, '.env');
+    try {
+      if (fs.existsSync(envFile)) {
+        let envContent = fs.readFileSync(envFile, 'utf-8');
+        
+        if (!envContent.includes('DATABASE_URL=')) {
+          const separator = envContent.length > 0 && !envContent.endsWith('\n') ? '\n' : '';
+          envContent += `${separator}DATABASE_URL="${answers.dbUrl.trim()}"\n`;
+          fs.writeFileSync(envFile, envContent);
+          logger.success('Added DATABASE_URL to your existing .env file');
+        } else {
+          logger.warn('DATABASE_URL already exists in .env. We did not overwrite it.');
+        }
+      } else {
+        const envContent = `DATABASE_URL="${answers.dbUrl.trim()}"\n`;
+        fs.writeFileSync(envFile, envContent);
+        logger.success('.env file created with your database URL');
+      }
+    } catch (error) {
+      logger.error(`Failed to update .env: ${error.message}`);
     }
   }
 
-  // 4. Final Logs
-  if (configFileReady) {
-    logger.success('runway.config.js created');
+  // 5. Final Status
+  console.log('');
+  logger.printDivider();
+  
+  if (configFileReady && migrationsDirReady) {
+    logger.success('Runway initialization complete!');
+    
+    if (configFileReady) logger.success(' - runway.config.js (initialized)');
+    if (migrationsDirReady) logger.success(' - migrations/ (created)');
+    
+    if (answers.hasDatabase) {
+      logger.suggest('Since you have an existing DB, consider running: runway baseline');
+    } else {
+      logger.suggest('To create your first migration run: runway create create-users-table');
+    }
+  } else {
+    logger.error('Initialization partially failed. Please check the errors above.');
   }
-
-  if (migrationsDirReady) {
-    logger.success('migrations/ directory ready');
-  }
-
-  logger.suggest('runway create create-users-table');
+  
+  console.log('');
 }

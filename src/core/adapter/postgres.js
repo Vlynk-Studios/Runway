@@ -94,19 +94,19 @@ export class PostgresAdapter extends BaseAdapter {
     // Network-level errors
     if (code === 'ECONNREFUSED') {
       return (
-        `Connection refused — the database server is not reachable at the configured host/port.\n` +
+        `Connection refused - the database server is not reachable at the configured host/port.\n` +
         `Check that DB_HOST and DB_PORT (or DATABASE_URL) are correct and the server is running.`
       );
     }
     if (code === 'ENOTFOUND' || code === 'EAI_AGAIN') {
       return (
-        `Host not found — could not resolve the database hostname.\n` +
+        `Host not found - could not resolve the database hostname.\n` +
         `Verify that DB_HOST (or the host in DATABASE_URL) is spelled correctly.`
       );
     }
     if (code === 'ETIMEDOUT') {
       return (
-        `Connection timed out — the database server did not respond in time.\n` +
+        `Connection timed out - the database server did not respond in time.\n` +
         `Check your network, firewall rules, and DB_HOST / DB_PORT settings.`
       );
     }
@@ -114,24 +114,24 @@ export class PostgresAdapter extends BaseAdapter {
     // PostgreSQL auth / database errors (SQLSTATE codes)
     if (code === '28P01' || code === '28000') {
       return (
-        `Authentication failed — the provided credentials were rejected by PostgreSQL.\n` +
+        `Authentication failed - the provided credentials were rejected by PostgreSQL.\n` +
         `Check DB_USER and DB_PASSWORD (or the credentials in DATABASE_URL).`
       );
     }
     if (code === '3D000') {
       return (
-        `Database not found — PostgreSQL does not have a database with that name.\n` +
+        `Database not found - PostgreSQL does not have a database with that name.\n` +
         `Check DB_NAME (or the database name in DATABASE_URL).`
       );
     }
     if (code === '57P03') {
-      return `The database server is starting up — please try again in a moment.`;
+      return `The database server is starting up - please try again in a moment.`;
     }
 
     // SSL errors
     if (msg.toLowerCase().includes('ssl')) {
       return (
-        `SSL connection error — the server may not support SSL, or the certificate is invalid.\n` +
+        `SSL connection error - the server may not support SSL, or the certificate is invalid.\n` +
         `Try setting DB_SSL=false or verifying your SSL configuration.`
       );
     }

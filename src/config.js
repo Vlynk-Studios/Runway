@@ -98,7 +98,7 @@ export function validateDatabaseConfig() {
       logger.error('Invalid DATABASE_URL format.');
       logger.info(
         'Expected format: postgresql://user:password@host:port/dbname\n' +
-        `Received:        ${database.url.slice(0, 60)}${database.url.length > 60 ? '…' : ''}`,
+        `Received:        ${database.url.slice(0, 60)}${database.url.length > 60 ? '...' : ''}`,
       );
       process.exit(1);
     }
