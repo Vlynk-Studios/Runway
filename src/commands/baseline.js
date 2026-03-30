@@ -2,13 +2,11 @@ import fs from 'fs';
 import path from 'path';
 import ora from 'ora';
 import chalk from 'chalk';
-import boxen from 'boxen';
 import { config, validateDatabaseConfig } from '../config.js';
 import { logger } from '../logger.js';
 import { PostgresAdapter } from '../core/adapter/postgres.js';
 import { LogTable } from '../core/log-table.js';
 import { calculateChecksum } from '../core/checksum.js';
-
 /**
  * Marks migrations as applied without executing their SQL content.
  * @param {string} version - Optional. Only baseline up to this version prefix.
@@ -16,21 +14,9 @@ import { calculateChecksum } from '../core/checksum.js';
 export async function baseline(version) {
   validateDatabaseConfig();
 
-  const warning = boxen(
-    chalk.bold.yellow('! BASELINE MODE ACTIVATED !') +
-      '\n\n' +
-      chalk.yellow(
-        'This will record migrations as applied WITHOUT executing any SQL.\n' +
-          'Use this ONLY to synchronize an existing database with Runway.',
-      ),
-    {
-      padding: 1,
-      borderStyle: 'double',
-      borderColor: 'yellow',
-      margin: { top: 1, bottom: 1 },
-    },
-  );
-  console.log(warning);
+  console.log('\n' + chalk.bold.yellow('! BASELINE MODE ACTIVATED !'));
+  console.log(chalk.yellow('This will record migrations as applied WITHOUT executing any SQL.'));
+  console.log(chalk.yellow('Use this ONLY to synchronize an existing database with Runway.\n'));
 
   const adapter = new PostgresAdapter(config);
   const logTable = new LogTable(config.schema);

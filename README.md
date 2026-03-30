@@ -14,7 +14,7 @@ Runway is a lightweight, reliable, and transactional SQL migration CLI for Node.
 - **Cross-platform Consistent** — automatic line ending normalization (CRLF/LF) for team workflows.
 - **Dry-run mode** — preview what would be applied without touching the database.
 - **Version range control** — `--from` and `--to` flags to run only a specific range of migrations.
-- **Minimal footprint** - only 7 production dependencies: `pg`, `commander`, `dotenv`, `chalk`, `ora`, `boxen`, and `inquirer`.
+- **Minimal footprint** - only 6 production dependencies: `pg`, `commander`, `dotenv`, `chalk`, `ora`, and `inquirer`.
 - **Flexible config** - `runway.config.js` with multi-environment support and guided initialization.
 - **Pure ASCII UI** - 100% terminal-friendly with standardized English ASCII icons (No emojis).
 
