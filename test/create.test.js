@@ -5,17 +5,14 @@ import { logger } from '../src/logger.js';
 import path from 'path';
 
 describe('create command logging and naming', () => {
-  let mockExit;
   let mockWriteSync;
-  let mockReadDirSync;
-  let mockExistsSync;
   
   beforeEach(() => {
     jest.resetModules();
-    mockExit = jest.spyOn(process, 'exit').mockImplementation(() => {});
+    jest.spyOn(process, 'exit').mockImplementation(() => {});
     mockWriteSync = jest.spyOn(fs, 'writeFileSync').mockImplementation(() => {});
-    mockExistsSync = jest.spyOn(fs, 'existsSync').mockReturnValue(true);
-    mockReadDirSync = jest.spyOn(fs, 'readdirSync').mockReturnValue(['001_initial.sql']);
+    jest.spyOn(fs, 'existsSync').mockReturnValue(true);
+    jest.spyOn(fs, 'readdirSync').mockReturnValue(['001_initial.sql']);
     
     // Mock the logger to catch what it outputs without logging to stdout
     jest.spyOn(logger, 'success').mockImplementation(() => {});
@@ -47,8 +44,8 @@ describe('create command logging and naming', () => {
     const successCalls = logger.success.mock.calls;
     expect(successCalls.length).toBe(1);
     
-    // Matches the required format with "Migration creada "
-    expect(successCalls[0][0]).toContain('Migration creada —');
+    // Matches the required format with "Migration created -"
+    expect(successCalls[0][0]).toContain('Migration created -');
     expect(successCalls[0][0]).toContain('002_space-to-hyphen-test.sql');
   });
 });

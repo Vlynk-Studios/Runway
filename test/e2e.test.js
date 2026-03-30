@@ -71,7 +71,10 @@ describe('End-to-End Flows (v0.3.0)', () => {
     jest.spyOn(console, 'log').mockImplementation(() => {});
     
     // Mock fs functions
-    jest.spyOn(fs, 'existsSync').mockReturnValue(false);
+    jest.spyOn(fs, 'existsSync').mockImplementation((p) => {
+      if (p.includes('templates')) return true;
+      return false;
+    });
     jest.spyOn(fs, 'mkdirSync').mockImplementation(() => {});
     jest.spyOn(fs, 'writeFileSync').mockImplementation(() => {});
     jest.spyOn(fs, 'readFileSync').mockReturnValue('// url: process.env.DATABASE_URL');
