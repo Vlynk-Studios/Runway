@@ -1,5 +1,3 @@
-import dotenv from 'dotenv';
-import path from 'path';
 import ora from 'ora';
 import chalk from 'chalk';
 import { config, validateDatabaseConfig } from '../config.js';
@@ -9,20 +7,13 @@ import { MigrationRunner } from '../core/runner.js';
 
 /**
  * Migration command handler.
- * Coordinates environment loading, DB connection, and the runner.
+ * Coordinates DB connection and the runner.
  */
 export async function migrate(options) {
-  // 1. Support for custom --env file
-  if (options.env) {
-    const envPath = path.resolve(process.cwd(), options.env);
-    dotenv.config({ path: envPath, override: true });
-    logger.info(`Using environment file: ${options.env}`);
-  }
-
-  // 2. Validate database configuration
+  // 1. Validate database configuration
   validateDatabaseConfig();
 
-  // 3. Initialize Adapter & Runner
+  // 2. Initialize Adapter & Runner
   const spinner = ora('Establishing database connection...').start();
   const adapter = new PostgresAdapter(config);
   const runner = new MigrationRunner(adapter, config);
@@ -43,7 +34,7 @@ export async function migrate(options) {
     const result = await runner.run({ dryRun });
     spinner.stop();
 
-    // 4. Print Summary
+    // 3. Print Summary
     if (result.applied > 0) {
       console.log(`\n${chalk.green.bold(result.applied)} migration(s) executed successfully`);
       logger.suggest('runway status');

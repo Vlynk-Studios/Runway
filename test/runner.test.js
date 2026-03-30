@@ -38,10 +38,14 @@ describe('MigrationRunner', () => {
     const runner = new MigrationRunner(adapter, baseConfig);
 
     const result = await runner.run();
-
+    
     expect(result.applied).toBeGreaterThan(0);
     expect(result.skipped).toBe(0);
     expect(result.failed).toBe(0);
+    expect(result.details.length).toBe(result.applied);
+    expect(result.details[0]).toHaveProperty('duration');
+    expect(typeof result.details[0].duration).toBe('number');
+    
     expect(adapter._calls).toContain('BEGIN');
     expect(adapter._calls).toContain('COMMIT');
   });

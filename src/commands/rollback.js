@@ -1,5 +1,3 @@
-import dotenv from 'dotenv';
-import path from 'path';
 import ora from 'ora';
 import chalk from 'chalk';
 import { config, validateDatabaseConfig } from '../config.js';
@@ -11,17 +9,10 @@ import { MigrationRunner } from '../core/runner.js';
  * Reverts the last migration applied to the database.
  */
 export async function rollback(options) {
-  // 1. Support for custom --env file
-  if (options.env) {
-    const envPath = path.resolve(process.cwd(), options.env);
-    dotenv.config({ path: envPath, override: true });
-    logger.info(`Using environment file: ${options.env}`);
-  }
-
-  // 2. Validate database configuration
+  // 1. Validate database configuration
   validateDatabaseConfig();
 
-  // 3. Initialize Adapter & Runner
+  // 2. Initialize Adapter & Runner
   const spinner = ora('Establishing database connection...').start();
   const adapter = new PostgresAdapter(config);
   const runner = new MigrationRunner(adapter, config);
@@ -41,7 +32,7 @@ export async function rollback(options) {
     const result = await runner.rollback({ dryRun, steps });
     spinner.stop();
 
-    // 4. Print Summary
+    // 3. Print Summary
     if (result.rolledBack > 0) {
       console.log(`\n${chalk.yellow.bold(result.rolledBack)} migration(s) rolled back successfully`);
       logger.suggest('runway status');

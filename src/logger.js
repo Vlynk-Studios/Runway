@@ -4,26 +4,30 @@ import chalk from 'chalk';
  * Professional logger with chalk colors and standardized formatting.
  */
 export const logger = {
-  info: (message) => console.log(`${chalk.gray('[Runway: info]')}    ${message}`),
-  warn: (message) => console.log(`${chalk.yellow('[Runway: warn]')}    ${message}`),
-  error: (message) => console.error(`${chalk.red('[Runway: error]')}   ${message}`),
-  success: (message) => console.log(`${chalk.green('[Runway: success]')} ${message}`),
+  info: (message) =>
+    console.log(`${chalk.gray('[Runway: info]')}    ${message}`),
+  warn: (message) =>
+    console.log(`${chalk.yellow('[Runway: warn]')}    ${message}`),
+  error: (message) =>
+    console.error(`${chalk.red('[Runway: error]')}   ${message}`),
+  success: (message) =>
+    console.log(`${chalk.green('[Runway: success]')} ${message}`),
 
   /**
    * Displays a stylized success message with execution timing.
    */
-  stepSuccess: (name, durationMs) => {
+  stepSuccess: (name, duration) => {
     const icon = chalk.green('✔');
-    const nameStr = name.padEnd(45);
-    const timeStr = chalk.gray(`${durationMs.toFixed(0)}ms`);
-    console.log(`${icon}  ${nameStr} ${timeStr}`);
+    console.log(`  ${icon} ${chalk.bold(name).padEnd(30)} ${chalk.gray(`${duration}ms`)}`);
   },
 
   /**
    * Suggests the next logical command to the user.
    */
   suggest: (command) => {
-    console.log(`\nNext step:\n${chalk.cyan('>')} ${chalk.cyan.bold(command)}\n`);
+    console.log(
+      `\nNext step:\n${chalk.cyan('>')} ${chalk.cyan.bold(command)}\n`,
+    );
   },
 
   printDivider: () => {
@@ -50,7 +54,7 @@ dMP dMP  VMMMP" dMP dMP  VMMMPVMMP" dMP dMP  VMMMP"
     `);
     console.log(asciiArt);
     console.log(chalk.gray(`                             v${version}\n`));
-  }
+  },
 };
 
 // Exporting colors for backward compatibility where needed, though chalk is preferred.
@@ -63,5 +67,5 @@ export const colors = {
   red: (t) => chalk.red(t),
   green: (t) => chalk.green(t),
   magenta: (t) => chalk.magenta(t),
-  gray: (t) => chalk.gray(t)
+  gray: (t) => chalk.gray(t),
 };
