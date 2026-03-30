@@ -30,7 +30,7 @@ export async function rollback(options) {
     const steps = parseInt(options.steps || '1', 10);
 
     if (dryRun) {
-      logger.warn('Dry-run mode enabled — no changes will be applied to the database.');
+      logger.warn('Dry-run mode enabled - no changes will be applied to the database.');
     }
 
     if (steps > 1) {

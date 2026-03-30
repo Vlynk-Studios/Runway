@@ -62,7 +62,7 @@ export async function baseline(version) {
       const checksum = calculateChecksum(content);
       
       await logTable.registerMigration(adapter, file, checksum);
-      logger.success(`[x] ${file} — marked as applied`);
+      logger.success(`[x] ${file} - marked as applied`);
     }
     
     await adapter.commit();

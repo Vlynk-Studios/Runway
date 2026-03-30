@@ -36,7 +36,7 @@ export const logger = {
   success: (message) => console.log(formatMessage('success', colors.green, message)),
 
   printDivider: () => {
-    console.log(`${colors.dim}${'─'.repeat(50)}${colors.reset}`);
+    console.log(`${colors.dim}${'-'.repeat(50)}${colors.reset}`);
   },
 
   printHeader: (name = 'RUNWAY', version = '') => {

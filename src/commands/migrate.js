@@ -30,7 +30,7 @@ export async function migrate(options) {
     const dryRun = options.dryRun ?? false;
 
     if (dryRun) {
-      logger.warn('Dry-run mode enabled — no changes will be applied to the database.');
+      logger.warn('Dry-run mode enabled - no changes will be applied to the database.');
     }
 
     logger.info('Starting migration synchronization...');
