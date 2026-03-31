@@ -64,7 +64,7 @@ export async function status(_options = {}) {
       let info = '';
 
       if (!existsOnDisk && record && !record.rolled_back_at) {
-        // ORPHAN: Applied in DB but file is gone — not counted as applied.
+        // ORPHAN: Applied in DB but file is gone -- not counted as applied.
         statusRaw = '[ORPHAN ]';
         statusStyled = chalk.bold.red(statusRaw);
         orphanCount++;

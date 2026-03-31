@@ -114,7 +114,7 @@ describe('status command logic', () => {
 
     const logCalls = logSpy.mock.calls.map(call => String(call[0] || ''));
     const hasOrphan = logCalls.some(log => log.includes('[ORPHAN ]') && log.includes('001_initial.sql'));
-    // fix #3: orphans have their own summary line — not annotated inside Applied
+    // fix #3: orphans have their own summary line - not annotated inside Applied
     const hasOrphanSummary = logCalls.some(log => log.includes('[!]') && log.includes('Orphaned'));
     
     expect(hasOrphan).toBe(true);

@@ -35,7 +35,7 @@ export async function init() {
     if (hasUrl || hasKeys) {
       hasExistingDbConfig = true;
       const type = hasUrl ? 'DATABASE_URL' : 'Database credentials';
-      logger.info(`${type} detected in .env — skipping setup`);
+      logger.info(`${type} detected in .env -- skipping setup`);
     }
   }
 
@@ -178,10 +178,11 @@ export async function init() {
     if (configFileReady) logger.success(' - runway.config.js (initialized)');
     if (migrationsDirReady) logger.success(' - migrations/ (created)');
     
-    if (answers.hasDatabase) {
+    if (hasExistingDbConfig || (answers.setupEnv && answers.dbUrl)) {
       logger.suggest('Since you have an existing DB, consider running: runway baseline');
     } else {
       logger.suggest('To create your first migration run: runway create create-users-table');
+      logger.info(chalk.dim('\nTip: When you\'re ready, add DATABASE_URL to your .env and uncomment the url field in runway.config.js'));
     }
   } else {
     logger.error('Initialization partially failed. Please check the errors above.');

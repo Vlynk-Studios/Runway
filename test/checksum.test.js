@@ -6,7 +6,7 @@ describe('calculateChecksum', () => {
     expect(result).toMatch(/^[a-f0-9]{64}$/);
   });
 
-  it('is deterministic — same input gives same output', () => {
+  it('is deterministic - same input gives same output', () => {
     const a = calculateChecksum('CREATE TABLE users (id SERIAL);');
     const b = calculateChecksum('CREATE TABLE users (id SERIAL);');
     expect(a).toBe(b);

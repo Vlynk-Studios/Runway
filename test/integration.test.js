@@ -53,13 +53,13 @@ describe('Integration Test: Full Migration Lifecycle', () => {
     const { init } = await import('../src/commands/init.js');
     const { create } = await import('../src/commands/create.js');
     const { migrate } = await import('../src/commands/migrate.js');
-    const { status } = await import('../src/commands/status.js');
+    await import('../src/commands/status.js');
     const { rollback } = await import('../src/commands/rollback.js');
     const { baseline } = await import('../src/commands/baseline.js');
 
     // Mocks for interactive prompts
     const inquirer = (await import('inquirer')).default;
-    const promptSpy = jest.spyOn(inquirer, 'prompt');
+    jest.spyOn(inquirer, 'prompt');
 
     // --- STEP 1: INIT ---
     // Should detect the .env URL and skip prompts

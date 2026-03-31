@@ -172,7 +172,7 @@ describe('init command', () => {
 
     await init();
 
-    expect(logger.info).toHaveBeenCalledWith(expect.stringContaining('DATABASE_URL detected in .env — skipping setup'));
+    expect(logger.info).toHaveBeenCalledWith(expect.stringContaining('DATABASE_URL detected in .env -- skipping setup'));
     // Should NOT have tried to write to .env
     expect(fs.writeFileSync).not.toHaveBeenCalledWith(expect.stringContaining('.env'), expect.any(String));
     // Should still have uncommented the config
@@ -198,14 +198,23 @@ describe('init command', () => {
 
     await init();
 
-    expect(logger.info).toHaveBeenCalledWith(expect.stringContaining('Database credentials detected in .env — skipping setup'));
+    expect(logger.info).toHaveBeenCalledWith(expect.stringContaining('Database credentials detected in .env -- skipping setup'));
     // Should NOT have tried to write to .env
     expect(fs.writeFileSync).not.toHaveBeenCalledWith(expect.stringContaining('.env'), expect.any(String));
   });
 
-  it('suggests baseline if user has database', async () => {
-    inquirer.prompt.mockResolvedValue({ hasDatabase: true, setupEnv: false });
-    fs.existsSync.mockReturnValue(true);
+  it('suggests baseline if user has database and config exists', async () => {
+    // Mock existing database config in .env to trigger baseline suggestion
+    fs.existsSync.mockImplementation((p) => {
+        if (p.includes('templates')) return true;
+        if (p.endsWith('.env')) return true;
+        return true;
+    });
+    fs.readFileSync.mockImplementation((p) => {
+        if (p.endsWith('.env')) return 'DATABASE_URL="postgresql://localhost/db"';
+        return '// url: process.env.DATABASE_URL';
+    });
+
     await init();
     expect(logger.suggest).toHaveBeenCalledWith(expect.stringContaining('runway baseline'));
   });
@@ -258,5 +267,20 @@ describe('init command', () => {
 
     await init();
     expect(logger.error).toHaveBeenCalledWith(expect.stringContaining('Failed to update .env: Crashed'));
+  });
+
+  it('shows a tip for manual database setup when user skips it', async () => {
+    inquirer.prompt.mockResolvedValue({ hasDatabase: false });
+    fs.existsSync.mockReturnValue(true);
+    await init();
+    expect(logger.info).toHaveBeenCalledWith(expect.stringContaining("Tip: When you're ready, add DATABASE_URL"));
+  });
+
+  it('verifies the exact Tip message for complete coverage', async () => {
+    inquirer.prompt.mockResolvedValue({ hasDatabase: false });
+    fs.existsSync.mockReturnValue(true);
+    await init();
+    const tipMessage = "Tip: When you're ready, add DATABASE_URL to your .env and uncomment the url field in runway.config.js";
+    expect(logger.info).toHaveBeenCalledWith(expect.stringContaining(tipMessage));
   });
 });
