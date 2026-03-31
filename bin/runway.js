@@ -37,7 +37,7 @@ program
   .command('init')
   .description('Initialize a new Runway configuration in the current directory')
   .action(async () => {
-    logger.printHeader(pkg.name, pkg.version);
+    logger.printHeader(pkg.version);
     await init();
   });
 
