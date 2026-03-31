@@ -22,7 +22,9 @@ export async function rollback(options) {
     spinner.text = 'Rolling back migrations...';
 
     const dryRun = options.dryRun ?? false;
-    const steps = parseInt(options.steps || '1', 10);
+    // Commander already coerces --steps via parseInt (see bin/runway.js).
+    // Guard against NaN explicitly in case of invalid input.
+    const steps = Number.isFinite(options.steps) ? options.steps : 1;
 
     if (dryRun) {
       spinner.stop();
