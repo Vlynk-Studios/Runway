@@ -106,10 +106,11 @@ export class MigrationRunner {
 
   /**
    * Performs an integrity check on all migrations recorded as applied in the database.
-   * Throws an error if any file is missing or has a checksum mismatch.
+   * Returns an array of validation details for each applied migration.
    */
   async validate() {
     const migrationsDir = path.resolve(process.cwd(), this.config.migrationsDir);
+    const details = [];
     
     // 1. Initialize and get history
     await this.logTable.ensureTable(this.adapter);
@@ -117,8 +118,7 @@ export class MigrationRunner {
     const activeApplied = history.filter(m => !m.rolled_back_at);
 
     if (activeApplied.length === 0) {
-      logger.info('No migrations have been applied yet. Nothing to validate.');
-      return true;
+      return details;
     }
 
     // 2. Cross-reference with disk
@@ -140,9 +140,11 @@ export class MigrationRunner {
           `This file has been modified after being applied to the database.`
         );
       }
+      
+      details.push({ name: record.name, checksum: record.checksum, status: 'PASSED' });
     }
 
-    return true;
+    return details;
   }
 
   /**
@@ -153,7 +155,7 @@ export class MigrationRunner {
    */
   async rollback({ dryRun = false, steps = 1 } = {}) {
     const migrationsDir = path.resolve(process.cwd(), this.config.migrationsDir);
-    const summary = { rolledBack: 0, failed: 0 };
+    const summary = { rolledBack: 0, failed: 0, details: [] };
 
     if (!fs.existsSync(migrationsDir)) {
       throw new Error(`Migrations directory not found: ${this.config.migrationsDir}`);
@@ -167,7 +169,6 @@ export class MigrationRunner {
     const applied = history.filter(m => !m.rolled_back_at);
 
     if (applied.length === 0) {
-      logger.info('No migrations have been applied yet. Nothing to rollback.');
       return summary;
     }
 
@@ -197,6 +198,7 @@ export class MigrationRunner {
       if (dryRun) {
         logger.warn(`[DRY-RUN] Step ${i + 1}/${totalSteps}: Would rollback ${migrationName}`);
         summary.rolledBack++;
+        summary.details.push({ name: migrationName, status: 'DRY-RUN' });
         continue;
       }
 
@@ -210,6 +212,7 @@ export class MigrationRunner {
 
         logger.success(`Success: Rolled back ${migrationName}`);
         summary.rolledBack++;
+        summary.details.push({ name: migrationName, status: 'REVERTED' });
       } catch (error) {
         await this.adapter.rollback();
 

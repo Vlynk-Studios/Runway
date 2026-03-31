@@ -9,9 +9,10 @@ import { LogTable } from '../core/log-table.js';
 import { calculateChecksum } from '../core/checksum.js';
 /**
  * Marks migrations as applied without executing their SQL content.
- * @param {string} version - Optional. Only baseline up to this version prefix.
+ * @param {string} version  - Optional. Only baseline up to this version prefix.
+ * @param {object} _options - CLI options (--env is consumed by config.js at load time).
  */
-export async function baseline(version) {
+export async function baseline(version, _options = {}) {
   validateDatabaseConfig();
 
   console.log('\n' + chalk.bold.yellow('! BASELINE MODE ACTIVATED !'));

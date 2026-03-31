@@ -8,6 +8,8 @@ const { Client } = pg;
  * Uses pg.Client to manage a dedicated connection for migrations.
  */
 export class PostgresAdapter extends BaseAdapter {
+  static instances = new Set();
+
   constructor(config) {
     super(config);
     this.client = null;
@@ -35,6 +37,7 @@ export class PostgresAdapter extends BaseAdapter {
     try {
       this.client = new Client(clientConfig);
       await this.client.connect();
+      PostgresAdapter.instances.add(this);
     } catch (error) {
       throw new Error(PostgresAdapter._classifyConnectionError(error), { cause: error });
     }
@@ -76,9 +79,22 @@ export class PostgresAdapter extends BaseAdapter {
    */
   async end() {
     if (this.client) {
-      await this.client.end();
-      this.client = null;
+      try {
+        await this.client.end();
+      } finally {
+        this.client = null;
+        PostgresAdapter.instances.delete(this);
+      }
     }
+  }
+
+  /**
+   * Static helper to close all active adapter connections.
+   * Useful for graceful shutdown on process signals.
+   */
+  static async closeAll() {
+    const active = Array.from(PostgresAdapter.instances);
+    await Promise.all(active.map(adapter => adapter.end()));
   }
 
   /**

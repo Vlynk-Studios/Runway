@@ -17,6 +17,7 @@ import { rollback } from '../src/commands/rollback.js';
 import { status } from '../src/commands/status.js';
 import { baseline } from '../src/commands/baseline.js';
 import { validate } from '../src/commands/validate.js';
+import { PostgresAdapter } from '../src/core/adapter/postgres.js';
 
 // Node.js version check
 const [major] = process.versions.node.split('.').map(Number);
@@ -37,7 +38,7 @@ program
   .command('init')
   .description('Initialize a new Runway configuration in the current directory')
   .action(async () => {
-    logger.printHeader(pkg.name, pkg.version);
+    logger.printHeader(pkg.version);
     await init();
   });
 
@@ -71,8 +72,8 @@ program
   .command('status')
   .description('Show the current status of all migrations')
   .option('-e, --env <path>', 'Specify a custom .env file path')
-  .action(async () => {
-    await status();
+  .action(async (options) => {
+    await status(options);
   });
 
 program
@@ -92,8 +93,8 @@ program
     'Optional. Version prefix to baseline up to (e.g. 005)',
   )
   .option('-e, --env <path>', 'Specify a custom .env file path')
-  .action(async (version) => {
-    await baseline(version);
+  .action(async (version, options) => {
+    await baseline(version, options);
   });
 
 program
@@ -109,7 +110,7 @@ program
     await rollback(options);
   });
 
-// 3. Global error handling and execution
+// 3. Global error handling
 program.on('command:*', () => {
   logger.error(
     `Invalid command: ${program.args.join(' ')}\nSee --help for a list of available commands.`,
@@ -117,9 +118,44 @@ program.on('command:*', () => {
   process.exit(1);
 });
 
-program.parse(process.argv);
+// 4. Graceful Shutdown Handlers
+async function shutdown(signal) {
+  if (signal === 'SIGINT') {
+    console.log(''); // Move to next line after ^C
+    logger.info('Operation cancelled.');
+  }
 
-// If no arguments, show help
-if (!process.argv.slice(2).length) {
-  program.outputHelp();
+  try {
+    const activeCount = PostgresAdapter.instances.size;
+    if (activeCount > 0) {
+      await PostgresAdapter.closeAll();
+    }
+  } catch {
+    // Silent catch during shutdown
+  } finally {
+    process.exit(0);
+  }
 }
+
+process.on('SIGINT', () => shutdown('SIGINT'));
+process.on('SIGTERM', () => shutdown('SIGTERM'));
+
+// 5. Execution
+(async () => {
+  try {
+    await program.parseAsync(process.argv);
+
+    // If no arguments, show help
+    if (!process.argv.slice(2).length) {
+      program.outputHelp();
+    }
+  } catch (error) {
+    // Handle Inquirer cancellation or other async errors
+    if (error.message && (error.message.includes('force closed') || error.message.includes('canceled'))) {
+      process.exit(0);
+    }
+    
+    logger.error(error.message);
+    process.exit(1);
+  }
+})();

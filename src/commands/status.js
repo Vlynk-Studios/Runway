@@ -9,8 +9,9 @@ import { LogTable } from '../core/log-table.js';
 
 /**
  * Lists all migrations and their current status in the database.
+ * @param {object} _options - CLI options (--env is consumed by config.js at load time).
  */
-export async function status() {
+export async function status(_options = {}) {
   validateDatabaseConfig();
   
   const spinner = ora('Fetching database status...').start();
@@ -63,11 +64,10 @@ export async function status() {
       let info = '';
 
       if (!existsOnDisk && record && !record.rolled_back_at) {
-        // ORPHAN: Applied in DB but file is gone
+        // ORPHAN: Applied in DB but file is gone -- not counted as applied.
         statusRaw = '[ORPHAN ]';
         statusStyled = chalk.bold.red(statusRaw);
         orphanCount++;
-        appliedCount++;
         const dateStr = new Date(record.applied_at).toISOString().replace('T', ' ').split('.')[0];
         info = chalk.red(`Missing on disk (applied ${dateStr})`);
 
@@ -104,7 +104,10 @@ export async function status() {
 
     logger.printDivider();
     console.log(chalk.bold('Summary:'));
-    console.log(`${chalk.green('  [x]')} Applied     : ${appliedCount}${orphanCount > 0 ? ` ${chalk.red(`(${orphanCount} missing on disk)`)}` : ''}`);
+    console.log(`${chalk.green('  [x]')} Applied     : ${appliedCount}`);
+    if (orphanCount > 0) {
+      console.log(`${chalk.bold.red('  [!]')} Orphaned    : ${orphanCount} ${chalk.red('(applied in DB but file missing on disk)')}`);
+    }
     console.log(`${chalk.yellow('  [r]')} Rolled back : ${rolledBackCount}`);
     
     if (pendingCount > 0) {

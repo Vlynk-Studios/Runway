@@ -5,6 +5,45 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.5] - 2026-03-31
+
+### Added
+- **Auto-detection in `runway init`** — The initialization process now 
+  automatically scans for an existing `DATABASE_URL` or `DB_*` credentials 
+  in `.env`. If detected, skips all database prompts and informs the user.
+- **Credential-based init flow** — When no `.env` is found, `runway init` 
+  now collects individual credentials (host, port, user, password, name) and 
+  constructs a properly encoded `DATABASE_URL`, solving authentication failures 
+  caused by special characters in passwords.
+- **Detailed Execution Summary** — `runway up` now displays a full table with 
+  STATUS / MIGRATION / DURATION for every applied migration.
+- **Graceful Shutdown** — Added `SIGINT` and `SIGTERM` handlers to ensure all 
+  active PostgreSQL connections are closed cleanly on process termination or 
+  Ctrl+C.
+
+### Fixed
+- **Spinner/Logger Conflict** — Fixed flickering and garbled output in 
+  `runway up` caused by `ora` spinner running concurrently with per-migration 
+  `console.log` calls. Spinner now stops before the execution loop begins.
+- **Orphan Count Correction** — Fixed a bug in `runway status` where orphaned 
+  migrations were being double-counted as both "Applied" and "Orphaned". 
+  Orphans are now correctly isolated into a distinct warning category.
+- **Double Header in `init`** — Resolved an issue where the ASCII banner was 
+  printed twice during `runway init`.
+- **Creation Visibility** — `runway create` now logs both generated files 
+  (`.sql` and `.down.sql`) on success.
+- **CLI Parameter Consistency** — `status`, `baseline`, and `rollback` 
+  handlers now correctly receive and forward the `options` parameter, ensuring 
+  `--env` works consistently across all commands.
+
+### Changed
+- **Cleaner CLI Output** — Suppressed verbose `[dotenv@x.x.x] injecting env` 
+  messages via quiet mode.
+- **Code Hygiene** — Removed redundant `parseInt` in `rollback.js` and 
+  eliminated the unused `_name` parameter from `printHeader`.
+- **Test Suite Hardening** — Updated and expanded to 77/77 tests covering new 
+  auto-detection logic, credential encoding, and graceful shutdown behavior.
+  
 ## [0.3.0] - 2026-03-30
 
 ### Added

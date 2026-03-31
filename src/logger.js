@@ -44,7 +44,7 @@ export const logger = {
   /**
    * Displays the high-impact ASCII header for entry points like init.
    */
-  printHeader: (_name = 'RUNWAY', version = '') => {
+  printHeader: (version = '') => {
     const asciiArt = chalk.cyan(`
     dMMMMb  dMP dMP dMMMMb  dMP dMP dMP .aMMMb  dMP dMP 
    dMP.dMP dMP dMP dMP dMP dMP dMP dMP dMP"dMP dMP.dMP  

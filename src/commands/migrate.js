@@ -26,25 +26,51 @@ export async function migrate(options) {
     const from = options.from ?? null;
     const to = options.to ?? null;
 
+    // Stop the spinner before the execution loop in all cases.
+    // runner.run() emits console.log lines per migration; mixing them with
+    // an active spinner causes flickering and garbled output.
+    spinner.stop();
+
     if (dryRun) {
-      spinner.stop();
       logger.warn('Dry-run mode enabled - no changes will be applied to the database.');
     } else {
       let rangeMsg = 'Running migrations...';
       if (from && to) rangeMsg = `Running migrations from ${from} to ${to}...`;
       else if (from) rangeMsg = `Running migrations from ${from}...`;
       else if (to) rangeMsg = `Running migrations up to ${to}...`;
-      
-      spinner.text = rangeMsg;
+
+      logger.info(rangeMsg);
     }
 
     const result = await runner.run({ dryRun, from, to });
-    spinner.stop();
-
+    
     // 3. Print Summary
     if (result.applied > 0) {
-      console.log(`\n${chalk.green.bold(result.applied)} migration(s) executed successfully`);
-      logger.suggest('runway status');
+      console.log(chalk.bold('\nMigrations Execution Summary:\n'));
+
+      // Table Header
+      const colStatus = 'STATUS'.padEnd(12);
+      const colMigration = 'MIGRATION'.padEnd(45);
+      const colInfo = 'DURATION';
+      console.log(chalk.gray(`${colStatus} | ${colMigration} | ${colInfo}`));
+      console.log(chalk.gray(`${'-'.repeat(12)}-+-${'-'.repeat(45)}-+-${'-'.repeat(15)}`));
+
+      for (const { name, duration } of result.details) {
+        const sRaw = '[OK]';
+        const sStyled = chalk.green(sRaw);
+        const dStr = `${duration.toFixed(0)}ms`;
+        console.log(`${sStyled.padEnd(12 + (sStyled.length - sRaw.length))} | ${name.padEnd(45)} | ${chalk.gray(dStr)}`);
+      }
+
+      logger.printDivider();
+      console.log(chalk.bold('Summary:'));
+      console.log(`${chalk.green('  [x]')} Applied     : ${result.applied}`);
+      
+      if (dryRun) {
+        logger.warn('This was a DRY-RUN. No changes were actually saved.');
+      } else {
+        logger.suggest('runway status');
+      }
     } else if (!dryRun) {
       logger.info('No pending migrations found.');
     } else {
