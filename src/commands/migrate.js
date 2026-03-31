@@ -46,7 +46,11 @@ export async function migrate(options) {
 
     // 3. Print Summary
     if (result.applied > 0) {
-      console.log(`\n${chalk.green.bold(result.applied)} migration(s) executed successfully`);
+      console.log(`\n${chalk.green.bold(result.applied)} migration(s) executed successfully:\n`);
+      for (const { name, duration } of result.details) {
+        console.log(`  ${chalk.green('+')} ${name} ${chalk.dim(`(${duration.toFixed(0)}ms)`)}`);
+      }
+      console.log('');
       logger.suggest('runway status');
     } else if (!dryRun) {
       logger.info('No pending migrations found.');
