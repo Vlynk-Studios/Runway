@@ -22,7 +22,6 @@ export async function init() {
   // Source template paths (relative to this script) - ensured resilience
   const configTemplate = path.resolve(__dirname, '../templates/runway.config.js');
 
-  logger.printHeader('INIT');
   console.log(chalk.bold("Welcome to Runway! Let's get your project staged.\n"));
 
   // 1. Interactive Prompt
