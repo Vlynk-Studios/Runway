@@ -9,8 +9,9 @@ import { LogTable } from '../core/log-table.js';
 
 /**
  * Lists all migrations and their current status in the database.
+ * @param {object} _options - CLI options (--env is consumed by config.js at load time).
  */
-export async function status() {
+export async function status(_options = {}) {
   validateDatabaseConfig();
   
   const spinner = ora('Fetching database status...').start();

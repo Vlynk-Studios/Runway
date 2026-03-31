@@ -71,8 +71,8 @@ program
   .command('status')
   .description('Show the current status of all migrations')
   .option('-e, --env <path>', 'Specify a custom .env file path')
-  .action(async () => {
-    await status();
+  .action(async (options) => {
+    await status(options);
   });
 
 program
@@ -92,8 +92,8 @@ program
     'Optional. Version prefix to baseline up to (e.g. 005)',
   )
   .option('-e, --env <path>', 'Specify a custom .env file path')
-  .action(async (version) => {
-    await baseline(version);
+  .action(async (version, options) => {
+    await baseline(version, options);
   });
 
 program
