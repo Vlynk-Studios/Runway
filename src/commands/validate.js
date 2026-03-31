@@ -1,4 +1,5 @@
 import ora from 'ora';
+import chalk from 'chalk';
 import { config, validateDatabaseConfig } from '../config.js';
 import { logger } from '../logger.js';
 import { PostgresAdapter } from '../core/adapter/postgres.js';
@@ -21,15 +22,32 @@ export async function validate() {
     await adapter.connect();
     
     // 3. Execution
-    await runner.validate();
-    
-    spinner.succeed('Integrity validation passed');
-    logger.success('All applied migrations match their local files.');
+    const details = await runner.validate();
+    spinner.stop();
 
-  } catch (error) {
-    spinner.fail('Validation failed');
-    logger.error(error.message);
-    process.exit(1);
+    if (details.length > 0) {
+      console.log(chalk.bold('\nIntegrity Validation Summary:\n'));
+
+      // Table Header
+      const colStatus = 'STATUS'.padEnd(12);
+      const colMigration = 'MIGRATION'.padEnd(45);
+      const colInfo = 'CHECKSUM';
+      console.log(chalk.gray(`${colStatus} | ${colMigration} | ${colInfo}`));
+      console.log(chalk.gray(`${'-'.repeat(12)}-+-${'-'.repeat(45)}-+-${'-'.repeat(32)}`));
+
+      for (const { name, checksum } of details) {
+        const sRaw = '[PASSED]';
+        const sStyled = chalk.green(sRaw);
+        console.log(`${sStyled.padEnd(12 + (sStyled.length - sRaw.length))} | ${name.padEnd(45)} | ${chalk.gray(checksum)}`);
+      }
+
+      logger.printDivider();
+      logger.success('Integrity validation passed: All applied migrations match their local files.');
+    } else {
+      logger.info('No migrations have been applied yet. Nothing to validate.');
+    }
+
+    console.log('\n');
   } finally {
     await adapter.end();
   }

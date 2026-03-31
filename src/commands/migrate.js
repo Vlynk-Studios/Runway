@@ -43,15 +43,34 @@ export async function migrate(options) {
     }
 
     const result = await runner.run({ dryRun, from, to });
-
+    
     // 3. Print Summary
     if (result.applied > 0) {
-      console.log(`\n${chalk.green.bold(result.applied)} migration(s) executed successfully:\n`);
+      console.log(chalk.bold('\nMigrations Execution Summary:\n'));
+
+      // Table Header
+      const colStatus = 'STATUS'.padEnd(12);
+      const colMigration = 'MIGRATION'.padEnd(45);
+      const colInfo = 'DURATION';
+      console.log(chalk.gray(`${colStatus} | ${colMigration} | ${colInfo}`));
+      console.log(chalk.gray(`${'-'.repeat(12)}-+-${'-'.repeat(45)}-+-${'-'.repeat(15)}`));
+
       for (const { name, duration } of result.details) {
-        console.log(`  ${chalk.green('+')} ${name} ${chalk.dim(`(${duration.toFixed(0)}ms)`)}`);
+        const sRaw = '[OK]';
+        const sStyled = chalk.green(sRaw);
+        const dStr = `${duration.toFixed(0)}ms`;
+        console.log(`${sStyled.padEnd(12 + (sStyled.length - sRaw.length))} | ${name.padEnd(45)} | ${chalk.gray(dStr)}`);
       }
-      console.log('');
-      logger.suggest('runway status');
+
+      logger.printDivider();
+      console.log(chalk.bold('Summary:'));
+      console.log(`${chalk.green('  [x]')} Applied     : ${result.applied}`);
+      
+      if (dryRun) {
+        logger.warn('This was a DRY-RUN. No changes were actually saved.');
+      } else {
+        logger.suggest('runway status');
+      }
     } else if (!dryRun) {
       logger.info('No pending migrations found.');
     } else {

@@ -2,6 +2,8 @@
 
 [![npm version](https://img.shields.io/npm/v/@vlynk-studios/runway.svg?style=flat-square)](https://www.npmjs.com/package/@vlynk-studios/runway)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=flat-square)](https://opensource.org/licenses/MIT)
+[![Coverage Status](https://img.shields.io/badge/Coverage-93%25-success.svg?style=flat-square)](#testing)
+[![Build Status](https://img.shields.io/github/actions/workflow/status/vlynk-studios/runway/ci.yml?style=flat-square)](https://github.com/vlynk-studios/runway/actions)
 
 Runway is a lightweight, reliable, and transactional SQL migration CLI for Node.js. Designed for speed and consistency, it ensures your database schema evolves safely alongside your code.
 
@@ -199,6 +201,28 @@ runway baseline 005      # baseline only up to migration 005
 
 - Node.js `>= 18.0.0`
 - PostgreSQL (other databases coming in a future release)
+
+## Testing
+
+Runway is heavily tested with both unit and integration suites.
+
+### Unit Tests
+Fast tests using mocks. No external dependencies required.
+```bash
+npm run test
+```
+
+### Integration Tests
+End-to-end tests using [Testcontainers](https://testcontainers.com/). **Requires Docker** to be running on your machine.
+```bash
+npm run test:integration
+```
+
+### Coverage
+Generate a full coverage report:
+```bash
+npm run test:coverage
+```
 
 ## Contribution
 

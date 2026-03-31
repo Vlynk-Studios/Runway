@@ -59,7 +59,11 @@ describe('init command', () => {
     inquirer.prompt.mockResolvedValue({
       hasDatabase: true,
       setupEnv: true,
-      dbUrl: 'postgres://user:pass@localhost:5432/db'
+      dbHost: 'localhost',
+      dbPort: '5432',
+      dbUser: 'user',
+      dbPass: 'pass',
+      dbName: 'db'
     });
 
     await init();
@@ -73,10 +77,9 @@ describe('init command', () => {
         expect.stringContaining('url: process.env.DATABASE_URL')
     );
     
-    // Check .env file creation
     expect(fs.writeFileSync).toHaveBeenCalledWith(
         expect.stringContaining('.env'), 
-        expect.stringContaining('DATABASE_URL="postgres://user:pass@localhost:5432/db"')
+        expect.stringContaining('DATABASE_URL="postgresql://user:pass@localhost:5432/db"')
     );
     
     expect(logger.success).toHaveBeenCalledWith(expect.stringContaining('Runway initialization complete'));
@@ -110,14 +113,18 @@ describe('init command', () => {
     inquirer.prompt.mockResolvedValue({
       hasDatabase: true,
       setupEnv: true,
-      dbUrl: 'postgres://localhost/db'
+      dbHost: 'localhost',
+      dbPort: '5432',
+      dbUser: 'user',
+      dbPass: 'pass',
+      dbName: 'db'
     });
 
     await init();
 
     expect(fs.writeFileSync).toHaveBeenCalledWith(
         expect.stringContaining('.env'), 
-        expect.stringContaining('DATABASE_URL="postgres://localhost/db"')
+        expect.stringContaining('DATABASE_URL="postgresql://user:pass@localhost:5432/db"')
     );
     expect(fs.writeFileSync).toHaveBeenCalledWith(
         expect.stringContaining('.env'), 
@@ -175,6 +182,27 @@ describe('init command', () => {
     );
   });
 
+  it('skips database setup prompts if separate keys are present in .env', async () => {
+    fs.existsSync.mockImplementation((p) => {
+        if (p.includes('templates')) return true;
+        if (p.endsWith('.env')) return true;
+        return true; 
+    });
+    fs.readFileSync.mockImplementation((p) => {
+        if (p.endsWith('.env')) return 'DB_HOST=localhost\nDB_USER=postgres\nDB_NAME=db\nDB_PASSWORD=pass';
+        return '// url: process.env.DATABASE_URL';
+    });
+    
+    // Inquirer should be called but skip all questions
+    inquirer.prompt.mockResolvedValue({});
+
+    await init();
+
+    expect(logger.info).toHaveBeenCalledWith(expect.stringContaining('Database credentials detected in .env — skipping setup'));
+    // Should NOT have tried to write to .env
+    expect(fs.writeFileSync).not.toHaveBeenCalledWith(expect.stringContaining('.env'), expect.any(String));
+  });
+
   it('suggests baseline if user has database', async () => {
     inquirer.prompt.mockResolvedValue({ hasDatabase: true, setupEnv: false });
     fs.existsSync.mockReturnValue(true);
@@ -189,18 +217,23 @@ describe('init command', () => {
     expect(logger.suggest).toHaveBeenCalledWith(expect.stringContaining('runway create'));
   });
 
-  it('validates database URL correctly', async () => {
-    // We need to call the validate function inside the inquirer prompt call
-    inquirer.prompt.mockResolvedValue({ hasDatabase: true, setupEnv: true, dbUrl: 'postgres://valid' });
+  it('encodes special characters in password correctly', async () => {
+    inquirer.prompt.mockResolvedValue({
+      hasDatabase: true,
+      setupEnv: true,
+      dbHost: 'localhost',
+      dbPort: '5432',
+      dbUser: 'user',
+      dbPass: 'p@ss#word!',
+      dbName: 'db'
+    });
+
     await init();
-    
-    const promptCalls = inquirer.prompt.mock.calls[0][0];
-    const urlPrompt = promptCalls.find(p => p.name === 'dbUrl');
-    
-    expect(urlPrompt.validate('')).toBe('Database URL cannot be empty.');
-    expect(urlPrompt.validate('invalid-url')).toBe('URL must start with postgres:// or postgresql://');
-    expect(urlPrompt.validate('postgres://valid')).toBe(true);
-    expect(urlPrompt.validate('postgresql://valid')).toBe(true);
+
+    expect(fs.writeFileSync).toHaveBeenCalledWith(
+        expect.stringContaining('.env'), 
+        expect.stringContaining('DATABASE_URL="postgresql://user:p%40ss%23word!@localhost:5432/db"')
+    );
   });
 
   it('handles errors when writing to .env', async () => {
@@ -216,7 +249,11 @@ describe('init command', () => {
     inquirer.prompt.mockResolvedValue({
       hasDatabase: true,
       setupEnv: true,
-      dbUrl: 'postgres://localhost/db'
+      dbHost: 'localhost',
+      dbPort: '5432',
+      dbUser: 'user',
+      dbPass: 'pass',
+      dbName: 'db'
     });
 
     await init();

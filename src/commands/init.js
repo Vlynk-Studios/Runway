@@ -24,14 +24,18 @@ export async function init() {
 
   console.log(chalk.bold("Welcome to Runway! Let's get your project staged.\n"));
 
-  // 1. Detect existing configuration
+  // 1. Detect existing configuration (Broad detection)
   const envFile = path.join(cwd, '.env');
-  let hasExistingDbUrl = false;
+  let hasExistingDbConfig = false;
   if (fs.existsSync(envFile)) {
     const envContent = fs.readFileSync(envFile, 'utf-8');
-    if (envContent.includes('DATABASE_URL=')) {
-      hasExistingDbUrl = true;
-      logger.info('DATABASE_URL detected in .env — skipping setup');
+    const hasUrl = envContent.includes('DATABASE_URL=');
+    const hasKeys = ['DB_HOST=', 'DB_USER=', 'DB_NAME=', 'DB_PASSWORD='].every(key => envContent.includes(key));
+    
+    if (hasUrl || hasKeys) {
+      hasExistingDbConfig = true;
+      const type = hasUrl ? 'DATABASE_URL' : 'Database credentials';
+      logger.info(`${type} detected in .env — skipping setup`);
     }
   }
 
@@ -42,34 +46,61 @@ export async function init() {
       name: 'hasDatabase',
       message: 'Do you already have a database?',
       default: true,
-      when: () => !hasExistingDbUrl
+      when: () => !hasExistingDbConfig
     },
     {
       type: 'confirm',
       name: 'setupEnv',
       message: 'Do you want to set up your database connection now? (Creates/updates .env file)',
       default: true,
-      when: (answers) => !hasExistingDbUrl && answers.hasDatabase
+      when: (answers) => !hasExistingDbConfig && answers.hasDatabase
     },
     {
       type: 'input',
-      name: 'dbUrl',
-      message: 'Enter your database connection URL:',
-      when: (answers) => !hasExistingDbUrl && answers.setupEnv,
-      validate: (input) => {
-        const trimmed = input.trim();
-        if (trimmed === '') return 'Database URL cannot be empty.';
-        if (!trimmed.startsWith('postgres://') && !trimmed.startsWith('postgresql://')) {
-          return 'URL must start with postgres:// or postgresql://';
-        }
-        return true;
-      },
-      default: 'postgresql://postgres:postgres@localhost:5432/postgres'
+      name: 'dbHost',
+      message: 'Database Host:',
+      default: 'localhost',
+      when: (answers) => !hasExistingDbConfig && answers.setupEnv
+    },
+    {
+      type: 'input',
+      name: 'dbPort',
+      message: 'Database Port:',
+      default: '5432',
+      when: (answers) => !hasExistingDbConfig && answers.setupEnv
+    },
+    {
+      type: 'input',
+      name: 'dbUser',
+      message: 'Database User:',
+      default: 'postgres',
+      when: (answers) => !hasExistingDbConfig && answers.setupEnv
+    },
+    {
+      type: 'password',
+      name: 'dbPass',
+      message: 'Database Password:',
+      mask: '*',
+      when: (answers) => !hasExistingDbConfig && answers.setupEnv
+    },
+    {
+      type: 'input',
+      name: 'dbName',
+      message: 'Database Name:',
+      default: 'postgres',
+      when: (answers) => !hasExistingDbConfig && answers.setupEnv
     }
   ]);
 
+  // If we collected individual parts, construct the final URL
+  if (!hasExistingDbConfig && answers.setupEnv) {
+    const encodedPass = encodeURIComponent(answers.dbPass || '');
+    // Construct valid URI for PostgreSQL
+    answers.dbUrl = `postgresql://${answers.dbUser}:${encodedPass}@${answers.dbHost}:${answers.dbPort}/${answers.dbName}`;
+  }
+
   // Normalize answers if skipped
-  if (hasExistingDbUrl) {
+  if (hasExistingDbConfig) {
     answers.hasDatabase = true;
   }
 
@@ -98,7 +129,7 @@ export async function init() {
       let content = fs.readFileSync(configTemplate, 'utf-8');
       
       // If we got the URL (either detected or prompted), let's make sure it's uncommented in the config.
-      if (hasExistingDbUrl || (answers.setupEnv && answers.dbUrl)) {
+      if (hasExistingDbConfig || (answers.setupEnv && answers.dbUrl)) {
          content = content.replace(/\/\/\s*url:\s*process\.env\.DATABASE_URL/, 'url: process.env.DATABASE_URL');
       }
 

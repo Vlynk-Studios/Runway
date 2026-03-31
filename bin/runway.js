@@ -17,6 +17,7 @@ import { rollback } from '../src/commands/rollback.js';
 import { status } from '../src/commands/status.js';
 import { baseline } from '../src/commands/baseline.js';
 import { validate } from '../src/commands/validate.js';
+import { PostgresAdapter } from '../src/core/adapter/postgres.js';
 
 // Node.js version check
 const [major] = process.versions.node.split('.').map(Number);
@@ -109,7 +110,7 @@ program
     await rollback(options);
   });
 
-// 3. Global error handling and execution
+// 3. Global error handling
 program.on('command:*', () => {
   logger.error(
     `Invalid command: ${program.args.join(' ')}\nSee --help for a list of available commands.`,
@@ -117,6 +118,27 @@ program.on('command:*', () => {
   process.exit(1);
 });
 
+// 4. Graceful Shutdown Handlers
+async function shutdown(signal) {
+  logger.info(`\nReceived ${signal}. Shutting down Runway...`);
+  
+  try {
+    const activeCount = PostgresAdapter.instances.size;
+    if (activeCount > 0) {
+      logger.info(`Closing ${activeCount} active database connection(s)...`);
+      await PostgresAdapter.closeAll();
+    }
+    process.exit(0);
+  } catch (error) {
+    logger.error(`Error during graceful shutdown: ${error.message}`);
+    process.exit(1);
+  }
+}
+
+process.on('SIGINT', () => shutdown('SIGINT'));
+process.on('SIGTERM', () => shutdown('SIGTERM'));
+
+// 5. Execution
 program.parse(process.argv);
 
 // If no arguments, show help
