@@ -40,7 +40,7 @@ describe('logger', () => {
   });
 
   it('prints the large ASCII header', () => {
-    logger.printHeader('RUNWAY', '0.0.0');
+    logger.printHeader('0.0.0');
     // Check for a characteristic line of the ASCII art
     expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('VMMMMP'));
     expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('v0.0.0'));
