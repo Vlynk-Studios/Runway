@@ -24,26 +24,38 @@ export async function init() {
 
   console.log(chalk.bold("Welcome to Runway! Let's get your project staged.\n"));
 
+  // 1. Detect existing configuration
+  const envFile = path.join(cwd, '.env');
+  let hasExistingDbUrl = false;
+  if (fs.existsSync(envFile)) {
+    const envContent = fs.readFileSync(envFile, 'utf-8');
+    if (envContent.includes('DATABASE_URL=')) {
+      hasExistingDbUrl = true;
+      logger.info('DATABASE_URL detected in .env — skipping setup');
+    }
+  }
+
   // 1. Interactive Prompt
   const answers = await inquirer.prompt([
     {
       type: 'confirm',
       name: 'hasDatabase',
       message: 'Do you already have a database?',
-      default: true
+      default: true,
+      when: () => !hasExistingDbUrl
     },
     {
       type: 'confirm',
       name: 'setupEnv',
       message: 'Do you want to set up your database connection now? (Creates/updates .env file)',
       default: true,
-      when: (answers) => answers.hasDatabase
+      when: (answers) => !hasExistingDbUrl && answers.hasDatabase
     },
     {
       type: 'input',
       name: 'dbUrl',
       message: 'Enter your database connection URL:',
-      when: (answers) => answers.setupEnv,
+      when: (answers) => !hasExistingDbUrl && answers.setupEnv,
       validate: (input) => {
         const trimmed = input.trim();
         if (trimmed === '') return 'Database URL cannot be empty.';
@@ -55,6 +67,11 @@ export async function init() {
       default: 'postgresql://postgres:postgres@localhost:5432/postgres'
     }
   ]);
+
+  // Normalize answers if skipped
+  if (hasExistingDbUrl) {
+    answers.hasDatabase = true;
+  }
 
   // 2. Create migrations directory
   let migrationsDirReady = true;
@@ -80,8 +97,8 @@ export async function init() {
 
       let content = fs.readFileSync(configTemplate, 'utf-8');
       
-      // If we got the URL, let's make sure it's uncommented in the config.
-      if (answers.setupEnv && answers.dbUrl) {
+      // If we got the URL (either detected or prompted), let's make sure it's uncommented in the config.
+      if (hasExistingDbUrl || (answers.setupEnv && answers.dbUrl)) {
          content = content.replace(/\/\/\s*url:\s*process\.env\.DATABASE_URL/, 'url: process.env.DATABASE_URL');
       }
 

@@ -148,10 +148,11 @@ describe('init command', () => {
     expect(logger.error).toHaveBeenCalledWith(expect.stringContaining('Template not found'));
   });
 
-  it('does not overwrite DATABASE_URL if already present in .env', async () => {
+  it('skips database setup prompts if DATABASE_URL is already present in .env', async () => {
     fs.existsSync.mockImplementation((p) => {
         if (p.includes('templates')) return true;
         if (p.endsWith('.env')) return true;
+        if (p.endsWith('runway.config.js')) return false;
         return true; 
     });
     fs.readFileSync.mockImplementation((p) => {
@@ -159,18 +160,19 @@ describe('init command', () => {
         return '// url: process.env.DATABASE_URL';
     });
     
-    inquirer.prompt.mockResolvedValue({
-      hasDatabase: true,
-      setupEnv: true,
-      dbUrl: 'postgres://new-url'
-    });
+    // Inquirer should be called but skip all questions (returning empty answers or default)
+    inquirer.prompt.mockResolvedValue({});
 
     await init();
 
-    // The only call should be for runway.config.js if it doesn't exist, 
-    // but in this test setup runway.config.js is returned as existing by existsSync(true)
+    expect(logger.info).toHaveBeenCalledWith(expect.stringContaining('DATABASE_URL detected in .env — skipping setup'));
+    // Should NOT have tried to write to .env
     expect(fs.writeFileSync).not.toHaveBeenCalledWith(expect.stringContaining('.env'), expect.any(String));
-    expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining('already exists in .env'));
+    // Should still have uncommented the config
+    expect(fs.writeFileSync).toHaveBeenCalledWith(
+        expect.stringContaining('runway.config.js'), 
+        expect.stringContaining('url: process.env.DATABASE_URL')
+    );
   });
 
   it('suggests baseline if user has database', async () => {
