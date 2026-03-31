@@ -30,7 +30,7 @@ describe('MigrationRunner.validate', () => {
     const adapter = createAdapter({ appliedRows: [] });
     const runner = new MigrationRunner(adapter, baseConfig);
     const result = await runner.validate();
-    expect(result).toBe(true);
+    expect(result).toEqual([]);
   });
 
   it('passes if all applied migrations match disk checksums', async () => {
@@ -43,7 +43,12 @@ describe('MigrationRunner.validate', () => {
     const adapter = createAdapter({ appliedRows });
     const runner = new MigrationRunner(adapter, baseConfig);
     const result = await runner.validate();
-    expect(result).toBe(true);
+    
+    expect(result).toHaveLength(files.length);
+    expect(result[0]).toMatchObject({
+      name: files[0],
+      status: 'PASSED'
+    });
   });
 
   it('throws an error if an applied migration is missing on disk', async () => {

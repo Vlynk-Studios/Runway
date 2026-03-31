@@ -24,7 +24,7 @@ function resolveEnvPath() {
 
 // 1. Initial Environment Load (Early detection from CLI/Env Var)
 const initialEnvPath = resolveEnvPath();
-dotenv.config({ path: initialEnvPath || '.env' });
+dotenv.config({ path: initialEnvPath || '.env', quiet: true, silent: true });
 
 /**
  * Attempts to load runway.config.js from the current working directory.
@@ -51,7 +51,7 @@ const userConfig = await loadConfigFile();
 
 // 3. Re-initialize environment if config specify a different path and no override was provided
 if (!initialEnvPath && userConfig.envFile && userConfig.envFile !== '.env') {
-  dotenv.config({ path: userConfig.envFile, override: true });
+  dotenv.config({ path: userConfig.envFile, override: true, quiet: true, silent: true });
 }
 
 /**

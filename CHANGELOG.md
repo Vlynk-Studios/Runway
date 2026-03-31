@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.5] - 2026-03-31
+
+### Added
+- **Auto-detection in `runway init`** — The initialization process now automatically scans for an existing `DATABASE_URL` in `.env`. If detected, it skips the database configuration prompts and informs the user, streamlining the setup for existing projects.
+- **Detailed Execution Summary** — `runway up` now displays a comprehensive list of all applied migrations and their individual execution durations (in milliseconds) as part of the final success summary.
+
+### Fixed
+- **Orphan Count Correction** — Fixed a bug in `runway status` where orphaned migrations (applied in DB but missing on disk) were being double-counted as both "Applied" and "Orphaned". They are now correctly isolated into a distinct warning category in the summary.
+- **Double Header in `init`** — Resolved an issue where the ASCII banner was printed twice during the `runway init` command execution.
+- **Creation Visibility** — `runway create` now explicitly logs both the `.up.sql` and the `.down.sql` files created, ensuring the user is aware of all generated assets.
+- **CLI Parameter Consistency** — Updated the `status`, `baseline`, and `rollback` command handlers to correctly accept and formalize the `options` parameter, ensuring the `--env` flag works consistently across all commands.
+
+### Changed
+- **Cleaner CLI Output** — Suppressed the verbose `[dotenv@x.x.x] injecting env` messages from the `dotenv` package to maintain a professional, noise-free terminal experience.
+- **Code Hygiene** — Removed redundant `parseInt` logic in `rollback.js` (now handled by Commander coercion) and eliminated the dead `_name` parameter from the logger's `printHeader` function.
+- **Test Suite Hardening** — Updated 60/60 tests to align with the new UI formatting and added specific coverage for the `runway init` auto-detection logic.
+
 ## [0.3.0] - 2026-03-30
 
 ### Added

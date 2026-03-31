@@ -40,12 +40,15 @@ describe('create command logging and naming', () => {
   it('outputs the customized hyphen-based migration log', async () => {
     await create('Space to Hyphen Test');
     
-    // Check the success message
+    // create.js now calls logger.success 3 times: header + up path + down path
     const successCalls = logger.success.mock.calls;
-    expect(successCalls.length).toBe(1);
+    expect(successCalls.length).toBe(3);
     
-    // Matches the required format with "Migration created -"
-    expect(successCalls[0][0]).toContain('Migration created -');
-    expect(successCalls[0][0]).toContain('002_space-to-hyphen-test.sql');
+    // First call is the header
+    expect(successCalls[0][0]).toContain('Migration created:');
+    // Second call is the .up.sql path
+    expect(successCalls[1][0]).toContain('002_space-to-hyphen-test.sql');
+    // Third call is the .down.sql path
+    expect(successCalls[2][0]).toContain('002_space-to-hyphen-test.down.sql');
   });
 });

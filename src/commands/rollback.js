@@ -22,7 +22,9 @@ export async function rollback(options) {
     spinner.text = 'Rolling back migrations...';
 
     const dryRun = options.dryRun ?? false;
-    const steps = parseInt(options.steps || '1', 10);
+    // Commander already coerces --steps via parseInt (see bin/runway.js).
+    // Guard against NaN explicitly in case of invalid input.
+    const steps = Number.isFinite(options.steps) ? options.steps : 1;
 
     if (dryRun) {
       spinner.stop();
@@ -33,9 +35,32 @@ export async function rollback(options) {
     spinner.stop();
 
     // 3. Print Summary
-    if (result.rolledBack > 0) {
-      console.log(`\n${chalk.yellow.bold(result.rolledBack)} migration(s) rolled back successfully`);
-      logger.suggest('runway status');
+    if (result.details && result.details.length > 0) {
+      console.log(chalk.bold('\nRollback Execution Summary:\n'));
+
+      // Table Header
+      const colStatus = 'STATUS'.padEnd(12);
+      const colMigration = 'MIGRATION'.padEnd(45);
+      const colInfo = 'RESULT';
+      console.log(chalk.gray(`${colStatus} | ${colMigration} | ${colInfo}`));
+      console.log(chalk.gray(`${'-'.repeat(12)}-+-${'-'.repeat(45)}-+-${'-'.repeat(15)}`));
+
+      for (const { name, status } of result.details) {
+        const sRaw = `[${status}]`;
+        const sStyled = status === 'REVERTED' ? chalk.yellow(sRaw) : chalk.cyan.dim(sRaw);
+        const resMsg = status === 'REVERTED' ? 'Successfully reverted' : 'Would be reverted';
+        console.log(`${sStyled.padEnd(12 + (sStyled.length - sRaw.length))} | ${name.padEnd(45)} | ${chalk.gray(resMsg)}`);
+      }
+
+      logger.printDivider();
+      console.log(chalk.bold('Summary:'));
+      console.log(`${chalk.yellow('  [r]')} Rolled back : ${result.rolledBack}`);
+      
+      if (dryRun) {
+        logger.warn('This was a DRY-RUN. No changes were actually saved.');
+      } else {
+        logger.suggest('runway status');
+      }
     } else {
       logger.info('No migrations were rolled back.');
     }

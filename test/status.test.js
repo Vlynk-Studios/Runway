@@ -112,12 +112,13 @@ describe('status command logic', () => {
 
     await status();
 
-    const logCalls = logSpy.mock.calls.map(call => logSpy.mock.calls.indexOf(call) > -1 ? String(call[0] || '') : '');
+    const logCalls = logSpy.mock.calls.map(call => String(call[0] || ''));
     const hasOrphan = logCalls.some(log => log.includes('[ORPHAN ]') && log.includes('001_initial.sql'));
-    const appliedLog = logCalls.some(log => log.includes('Applied') && log.includes('1 missing on disk'));
+    // fix #3: orphans have their own summary line - not annotated inside Applied
+    const hasOrphanSummary = logCalls.some(log => log.includes('[!]') && log.includes('Orphaned'));
     
     expect(hasOrphan).toBe(true);
-    expect(appliedLog).toBe(true);
+    expect(hasOrphanSummary).toBe(true);
   });
   
   it('correctly identifies applied migrations', async () => {
