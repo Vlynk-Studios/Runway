@@ -26,20 +26,23 @@ export async function migrate(options) {
     const from = options.from ?? null;
     const to = options.to ?? null;
 
+    // Stop the spinner before the execution loop in all cases.
+    // runner.run() emits console.log lines per migration; mixing them with
+    // an active spinner causes flickering and garbled output.
+    spinner.stop();
+
     if (dryRun) {
-      spinner.stop();
       logger.warn('Dry-run mode enabled - no changes will be applied to the database.');
     } else {
       let rangeMsg = 'Running migrations...';
       if (from && to) rangeMsg = `Running migrations from ${from} to ${to}...`;
       else if (from) rangeMsg = `Running migrations from ${from}...`;
       else if (to) rangeMsg = `Running migrations up to ${to}...`;
-      
-      spinner.text = rangeMsg;
+
+      logger.info(rangeMsg);
     }
 
     const result = await runner.run({ dryRun, from, to });
-    spinner.stop();
 
     // 3. Print Summary
     if (result.applied > 0) {
