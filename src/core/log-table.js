@@ -17,6 +17,17 @@ export class LogTable {
   }
 
   /**
+   * Helper to format query parameters placeholders
+   */
+  _p(index) {
+    // MySQL/MariaDB (and conventionally SQLite) use ?
+    if (['mysql', 'mariadb', 'sqlite'].includes(this.dialect)) {
+      return '?';
+    }
+    return `$${index}`;
+  }
+
+  /**
    * Ensures the migrations log table exists.
    */
   async ensureTable(adapter) {
@@ -58,7 +69,7 @@ export class LogTable {
   async registerMigration(adapter, name, checksum) {
     const sql = `
       INSERT INTO ${this.tableName} (name, checksum, applied_at, rolled_back_at) 
-      VALUES ($1, $2, CURRENT_TIMESTAMP, NULL)
+      VALUES (${this._p(1)}, ${this._p(2)}, CURRENT_TIMESTAMP, NULL)
       ON CONFLICT (name) DO UPDATE SET 
         checksum = EXCLUDED.checksum,
         applied_at = CURRENT_TIMESTAMP,
@@ -71,7 +82,7 @@ export class LogTable {
    * Marks a migration record as rolled back instead of deleting it.
    */
   async markAsRolledBack(adapter, name) {
-    const sql = `UPDATE ${this.tableName} SET rolled_back_at = CURRENT_TIMESTAMP WHERE name = $1;`;
+    const sql = `UPDATE ${this.tableName} SET rolled_back_at = CURRENT_TIMESTAMP WHERE name = ${this._p(1)};`;
     await adapter.query(sql, [name]);
   }
 }
