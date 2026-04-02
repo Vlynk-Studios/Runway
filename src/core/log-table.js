@@ -67,14 +67,28 @@ export class LogTable {
    * Registers a new migration or updates an existing one (re-application after rollback).
    */
   async registerMigration(adapter, name, checksum) {
-    const sql = `
-      INSERT INTO ${this.tableName} (name, checksum, applied_at, rolled_back_at) 
-      VALUES (${this._p(1)}, ${this._p(2)}, CURRENT_TIMESTAMP, NULL)
-      ON CONFLICT (name) DO UPDATE SET 
-        checksum = EXCLUDED.checksum,
-        applied_at = CURRENT_TIMESTAMP,
-        rolled_back_at = NULL;
-    `;
+    let sql;
+    
+    if (this.dialect === 'mysql' || this.dialect === 'mariadb') {
+      sql = `
+        INSERT INTO ${this.tableName} (name, checksum, applied_at, rolled_back_at) 
+        VALUES (${this._p(1)}, ${this._p(2)}, CURRENT_TIMESTAMP, NULL)
+        ON DUPLICATE KEY UPDATE 
+          checksum = VALUES(checksum),
+          applied_at = CURRENT_TIMESTAMP,
+          rolled_back_at = NULL;
+      `;
+    } else {
+      sql = `
+        INSERT INTO ${this.tableName} (name, checksum, applied_at, rolled_back_at) 
+        VALUES (${this._p(1)}, ${this._p(2)}, CURRENT_TIMESTAMP, NULL)
+        ON CONFLICT (name) DO UPDATE SET 
+          checksum = EXCLUDED.checksum,
+          applied_at = CURRENT_TIMESTAMP,
+          rolled_back_at = NULL;
+      `;
+    }
+
     await adapter.query(sql, [name, checksum]);
   }
 
