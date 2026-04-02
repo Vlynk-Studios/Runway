@@ -1,3 +1,5 @@
+import { logger } from '../logger.js';
+
 /**
  * Manages the runway_migrations table in the database.
  */
@@ -7,8 +9,10 @@ export class LogTable {
     this.dialect = dialect;
     
     if (this.dialect === 'mysql' || this.dialect === 'mariadb') {
-      const escapedSchema = schema.replace(/`/g, '``');
-      this.tableName = `\`${escapedSchema}\`.\`runway_migrations\``;
+      if (schema && schema !== 'public') {
+        logger.warn(`MySQL does not support schemas. The configured schema "${schema}" will be ignored.`);
+      }
+      this.tableName = `\`runway_migrations\``;
     } else {
       // Securely escape schema and table identifiers
       const escapedSchema = schema.replace(/"/g, '""');
@@ -50,8 +54,22 @@ export class LogTable {
     await adapter.query(sql);
 
     // Ensure the rolled_back_at column exists for users upgrading from v0.1.0/v0.2.0
-    const alterSql = `ALTER TABLE ${this.tableName} ADD COLUMN IF NOT EXISTS rolled_back_at TIMESTAMP;`;
-    await adapter.query(alterSql);
+    if (this.dialect === 'mysql' || this.dialect === 'mariadb') {
+      const checkSql = `
+        SELECT COLUMN_NAME 
+        FROM information_schema.columns 
+        WHERE table_schema = DATABASE() 
+          AND table_name = 'runway_migrations' 
+          AND column_name = 'rolled_back_at';
+      `;
+      const result = await adapter.query(checkSql);
+      if (!result.rows || result.rows.length === 0) {
+        await adapter.query(`ALTER TABLE ${this.tableName} ADD COLUMN rolled_back_at TIMESTAMP;`);
+      }
+    } else {
+      const alterSql = `ALTER TABLE ${this.tableName} ADD COLUMN IF NOT EXISTS rolled_back_at TIMESTAMP;`;
+      await adapter.query(alterSql);
+    }
   }
 
   /**
