@@ -4,7 +4,7 @@ import ora from 'ora';
 import chalk from 'chalk';
 import { config, validateDatabaseConfig } from '../config.js';
 import { logger } from '../logger.js';
-import { PostgresAdapter } from '../core/adapter/postgres.js';
+import { getAdapter } from '../core/adapter/index.js';
 import { LogTable } from '../core/log-table.js';
 import { calculateChecksum } from '../core/checksum.js';
 /**
@@ -19,7 +19,7 @@ export async function baseline(version, _options = {}) {
   console.log(chalk.yellow('This will record migrations as applied WITHOUT executing any SQL.'));
   console.log(chalk.yellow('Use this ONLY to synchronize an existing database with Runway.\n'));
 
-  const adapter = new PostgresAdapter(config);
+  const adapter = getAdapter(config);
   const logTable = new LogTable(config.schema, config.dialect);
   const spinner = ora('Initializing baseline...').start();
 

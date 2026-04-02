@@ -54,19 +54,22 @@ if (!initialEnvPath && userConfig.envFile && userConfig.envFile !== '.env') {
   dotenv.config({ path: userConfig.envFile, override: true, quiet: true, silent: true });
 }
 
+const resolvedDialect = process.env.RUNWAY_DIALECT || userConfig.dialect || 'postgres';
+const defaultPort = resolvedDialect === 'mysql' ? '3306' : '5432';
+
 /**
  * Resolved configuration object for Runway.
  * Priorities: Environment Variables > runway.config.js > Defaults.
  */
 export const config = {
-  dialect: process.env.RUNWAY_DIALECT || userConfig.dialect || 'postgres',
+  dialect: resolvedDialect,
   migrationsDir: process.env.RUNWAY_MIGRATIONS_DIR || userConfig.migrationsDir || './migrations',
   schema: process.env.RUNWAY_SCHEMA || userConfig.schema || 'public',
   
   database: {
     url: process.env.DATABASE_URL || userConfig.database?.url,
     host: process.env.DB_HOST || userConfig.database?.host,
-    port: parseInt(process.env.DB_PORT || userConfig.database?.port || '5432', 10),
+    port: parseInt(process.env.DB_PORT || userConfig.database?.port || defaultPort, 10),
     user: process.env.DB_USER || userConfig.database?.user,
     password: process.env.DB_PASSWORD || userConfig.database?.password,
     database: process.env.DB_NAME || userConfig.database?.database,
@@ -92,13 +95,19 @@ export function validateDatabaseConfig() {
     process.exit(1);
   }
 
-  // Validate DATABASE_URL format early to avoid cryptic pg errors at connect time
+  // Validate DATABASE_URL format early to avoid cryptic pg/mysql errors at connect time
   if (hasUrl) {
-    const validSchemes = /^(postgres|postgresql):\/\//i;
+    const validSchemes = config.dialect === 'mysql' 
+      ? /^(mysql|mariadb):\/\//i 
+      : /^(postgres|postgresql):\/\//i;
+      
     if (!validSchemes.test(database.url)) {
       logger.error('Invalid DATABASE_URL format.');
+      const expected = config.dialect === 'mysql' 
+        ? 'mysql://user:password@host:port/dbname' 
+        : 'postgresql://user:password@host:port/dbname';
       logger.info(
-        'Expected format: postgresql://user:password@host:port/dbname\n' +
+        `Expected format: ${expected}\n` +
         `Received:        ${database.url.slice(0, 60)}${database.url.length > 60 ? '...' : ''}`,
       );
       process.exit(1);

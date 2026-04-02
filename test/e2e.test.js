@@ -35,6 +35,7 @@ jest.unstable_mockModule('../src/config.js', () => ({
   config: {
     migrationsDir: './migrations',
     schema: 'public',
+    dialect: 'postgres',
     database: {
       url: 'postgresql://user:pass@localhost:5432/db',
     },

@@ -2,7 +2,7 @@ import ora from 'ora';
 import chalk from 'chalk';
 import { config, validateDatabaseConfig } from '../config.js';
 import { logger } from '../logger.js';
-import { PostgresAdapter } from '../core/adapter/postgres.js';
+import { getAdapter } from '../core/adapter/index.js';
 import { MigrationRunner } from '../core/runner.js';
 
 /**
@@ -15,7 +15,7 @@ export async function validate() {
 
   // 2. Initialize orchestration
   const spinner = ora('Validating database integrity...').start();
-  const adapter = new PostgresAdapter(config);
+  const adapter = getAdapter(config);
   const runner = new MigrationRunner(adapter, config);
 
   try {
