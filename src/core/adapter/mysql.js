@@ -51,9 +51,15 @@ export class MySQLAdapter extends BaseAdapter {
       throw new Error('MySQLAdapter: Connection not established. Call connect() first.');
     }
     
+    // Translate PostgreSQL style placeholders ($1, $2...) to MySQL format (?)
+    let translatedSql = sql;
+    if (params && params.length > 0) {
+      translatedSql = sql.replace(/\$\d+/g, '?');
+    }
+    
     // We use .query() instead of .execute() because execute is for prepared statements
     // and typically doesn't support multipleStatements (which are needed for migration sets).
-    const [rows, fields] = await this.connection.query(sql, params);
+    const [rows, fields] = await this.connection.query(translatedSql, params);
     
     // If the query was an INSERT/UPDATE/DELETE, mysql2 returns an object (ResultSetHeader), not an array.
     const isResultSetArray = Array.isArray(rows);
