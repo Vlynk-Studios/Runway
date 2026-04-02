@@ -20,7 +20,7 @@ export async function baseline(version, _options = {}) {
   console.log(chalk.yellow('Use this ONLY to synchronize an existing database with Runway.\n'));
 
   const adapter = new PostgresAdapter(config);
-  const logTable = new LogTable(config.schema);
+  const logTable = new LogTable(config.schema, config.dialect);
   const spinner = ora('Initializing baseline...').start();
 
   try {

@@ -59,6 +59,7 @@ if (!initialEnvPath && userConfig.envFile && userConfig.envFile !== '.env') {
  * Priorities: Environment Variables > runway.config.js > Defaults.
  */
 export const config = {
+  dialect: process.env.RUNWAY_DIALECT || userConfig.dialect || 'postgres',
   migrationsDir: process.env.RUNWAY_MIGRATIONS_DIR || userConfig.migrationsDir || './migrations',
   schema: process.env.RUNWAY_SCHEMA || userConfig.schema || 'public',
   

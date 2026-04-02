@@ -16,7 +16,7 @@ export async function status(_options = {}) {
   
   const spinner = ora('Fetching database status...').start();
   const adapter = new PostgresAdapter(config);
-  const logTable = new LogTable(config.schema);
+  const logTable = new LogTable(config.schema, config.dialect);
 
   try {
     await adapter.connect();

@@ -2,20 +2,34 @@
  * Manages the runway_migrations table in the database.
  */
 export class LogTable {
-  constructor(schema = 'public') {
+  constructor(schema = 'public', dialect = 'postgres') {
     this.schema = schema;
-    // Securely escape schema and table identifiers
-    const escapedSchema = schema.replace(/"/g, '""');
-    this.tableName = `"${escapedSchema}"."runway_migrations"`;
+    this.dialect = dialect;
+    
+    if (this.dialect === 'mysql' || this.dialect === 'mariadb') {
+      const escapedSchema = schema.replace(/`/g, '``');
+      this.tableName = `\`${escapedSchema}\`.\`runway_migrations\``;
+    } else {
+      // Securely escape schema and table identifiers
+      const escapedSchema = schema.replace(/"/g, '""');
+      this.tableName = `"${escapedSchema}"."runway_migrations"`;
+    }
   }
 
   /**
    * Ensures the migrations log table exists.
    */
   async ensureTable(adapter) {
+    let idColumnDef = 'id SERIAL PRIMARY KEY';
+    if (this.dialect === 'mysql' || this.dialect === 'mariadb') {
+      idColumnDef = 'id INT AUTO_INCREMENT PRIMARY KEY';
+    } else if (this.dialect === 'sqlite') {
+      idColumnDef = 'id INTEGER PRIMARY KEY AUTOINCREMENT';
+    }
+
     const sql = `
       CREATE TABLE IF NOT EXISTS ${this.tableName} (
-        id SERIAL PRIMARY KEY,
+        ${idColumnDef},
         name VARCHAR(255) NOT NULL UNIQUE,
         checksum VARCHAR(64) NOT NULL,
         applied_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
