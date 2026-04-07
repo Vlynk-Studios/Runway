@@ -8,7 +8,7 @@ import { MigrationRunner } from '../core/runner.js';
 /**
  * Reverts the last migration applied to the database.
  */
-export async function rollback(options) {
+export async function rollback(options = {}) {
   // 1. Validate database configuration
   validateDatabaseConfig();
 

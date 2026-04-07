@@ -42,6 +42,18 @@ export async function init() {
   // 1. Interactive Prompt
   const answers = await inquirer.prompt([
     {
+      type: 'list',
+      name: 'dialect',
+      message: 'Select your database engine:',
+      choices: [
+        { name: 'PostgreSQL', value: 'postgres' },
+        { name: 'MySQL', value: 'mysql' },
+        { name: 'MariaDB', value: 'mariadb' }
+      ],
+      default: 'postgres',
+      when: () => !hasExistingDbConfig
+    },
+    {
       type: 'confirm',
       name: 'hasDatabase',
       message: 'Do you already have a database?',
@@ -66,14 +78,14 @@ export async function init() {
       type: 'input',
       name: 'dbPort',
       message: 'Database Port:',
-      default: '5432',
+      default: (answers) => (answers.dialect === 'postgres' ? '5432' : '3306'),
       when: (answers) => !hasExistingDbConfig && answers.setupEnv
     },
     {
       type: 'input',
       name: 'dbUser',
       message: 'Database User:',
-      default: 'postgres',
+      default: (answers) => (answers.dialect === 'postgres' ? 'postgres' : 'root'),
       when: (answers) => !hasExistingDbConfig && answers.setupEnv
     },
     {
@@ -87,7 +99,7 @@ export async function init() {
       type: 'input',
       name: 'dbName',
       message: 'Database Name:',
-      default: 'postgres',
+      default: (answers) => (answers.dialect === 'postgres' ? 'postgres' : 'runway_db'),
       when: (answers) => !hasExistingDbConfig && answers.setupEnv
     }
   ]);
@@ -95,8 +107,9 @@ export async function init() {
   // If we collected individual parts, construct the final URL
   if (!hasExistingDbConfig && answers.setupEnv) {
     const encodedPass = encodeURIComponent(answers.dbPass || '');
-    // Construct valid URI for PostgreSQL
-    answers.dbUrl = `postgresql://${answers.dbUser}:${encodedPass}@${answers.dbHost}:${answers.dbPort}/${answers.dbName}`;
+    const scheme = answers.dialect === 'postgres' ? 'postgresql' : 'mysql';
+    // Construct valid URI based on dialect
+    answers.dbUrl = `${scheme}://${answers.dbUser}:${encodedPass}@${answers.dbHost}:${answers.dbPort}/${answers.dbName}`;
   }
 
   // Normalize answers if skipped
@@ -127,6 +140,8 @@ export async function init() {
       }
 
       let content = fs.readFileSync(configTemplate, 'utf-8');
+      const chosenDialect = answers.dialect || 'postgres';
+      content = content.replace(/dialect:\s*'postgres'/, `dialect: '${chosenDialect}'`);
       
       // If we got the URL (either detected or prompted), let's make sure it's uncommented in the config.
       if (hasExistingDbConfig || (answers.setupEnv && answers.dbUrl)) {

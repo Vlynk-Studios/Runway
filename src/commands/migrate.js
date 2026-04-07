@@ -9,7 +9,7 @@ import { MigrationRunner } from '../core/runner.js';
  * Migration command handler.
  * Coordinates DB connection and the runner.
  */
-export async function migrate(options) {
+export async function migrate(options = {}) {
   // 1. Validate database configuration
   validateDatabaseConfig();
 
@@ -80,6 +80,7 @@ export async function migrate(options) {
     console.log('\n');
 
   } catch (error) {
+    console.error(error.stack);
     spinner.fail('Migration cycle failed');
     logger.error(error.message);
     process.exit(1);
