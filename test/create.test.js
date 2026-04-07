@@ -51,4 +51,35 @@ describe('create command logging and naming', () => {
     // Third call is the .down.sql path
     expect(successCalls[2][0]).toContain('002_space-to-hyphen-test.down.sql');
   });
+
+  it('exits if no name is provided', async () => {
+    const exitSpy = jest.spyOn(process, 'exit').mockImplementation(() => { throw new Error('exit'); });
+    await expect(create()).rejects.toThrow('exit');
+    expect(logger.error).toHaveBeenCalledWith('Migration name is required.');
+    exitSpy.mockRestore();
+  });
+
+  it('exits if migrations directory does not exist', async () => {
+    const exitSpy = jest.spyOn(process, 'exit').mockImplementation(() => { throw new Error('exit'); });
+    jest.spyOn(fs, 'existsSync').mockReturnValue(false);
+    await expect(create('test')).rejects.toThrow('exit');
+    expect(logger.error).toHaveBeenCalledWith(expect.stringContaining('Migrations directory not found'));
+    exitSpy.mockRestore();
+  });
+
+  it('handles readdirSync errors gracefully', async () => {
+    const exitSpy = jest.spyOn(process, 'exit').mockImplementation(() => { throw new Error('exit'); });
+    jest.spyOn(fs, 'readdirSync').mockImplementation(() => { throw new Error('Read error'); });
+    await expect(create('test')).rejects.toThrow('exit');
+    expect(logger.error).toHaveBeenCalledWith(expect.stringContaining('Error reading migrations directory: Read error'));
+    exitSpy.mockRestore();
+  });
+
+  it('handles writeFileSync errors gracefully', async () => {
+    const exitSpy = jest.spyOn(process, 'exit').mockImplementation(() => { throw new Error('exit'); });
+    mockWriteSync.mockImplementation(() => { throw new Error('Write error'); });
+    await expect(create('test')).rejects.toThrow('exit');
+    expect(logger.error).toHaveBeenCalledWith(expect.stringContaining('Could not write migration files: Write error'));
+    exitSpy.mockRestore();
+  });
 });

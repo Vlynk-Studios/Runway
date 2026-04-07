@@ -1,7 +1,7 @@
 {
   "name": "@vlynk-studios/runway",
-  "version": "0.3.5",
-  "description": "Runway — SQL migration CLI for Node.js and PostgreSQL",
+  "version": "0.4.0",
+  "description": "Runway — SQL migration CLI for Node.js, PostgreSQL, MySQL and MariaDB",
   "type": "module",
   "repository": {
     "type": "git",
@@ -50,6 +50,8 @@
     "sql",
     "postgres",
     "postgresql",
+    "mysql",
+    "mariadb",
     "cli",
     "database",
     "devtools"
@@ -69,6 +71,7 @@
     "commander": "^14.0.3",
     "dotenv": "^17.3.1",
     "inquirer": "^13.3.2",
+    "mysql2": "^3.20.0",
     "ora": "^9.3.0",
     "pg": "^8.20.0"
   },

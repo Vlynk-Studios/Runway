@@ -12,7 +12,8 @@ jest.unstable_mockModule('ora', () => ({
 jest.unstable_mockModule('../src/config.js', () => ({
   config: { 
     database: { url: 'postgresql://localhost/test' },
-    migrationsDir: './migrations'
+    migrationsDir: './migrations',
+    dialect: 'postgres'
   },
   validateDatabaseConfig: jest.fn(),
 }));

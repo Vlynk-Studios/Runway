@@ -5,7 +5,7 @@
 [![Coverage Status](https://img.shields.io/badge/Coverage-93%25-success.svg?style=flat-square)](#testing)
 [![Build Status](https://img.shields.io/github/actions/workflow/status/vlynk-studios/runway/ci.yml?style=flat-square)](https://github.com/vlynk-studios/runway/actions)
 
-Runway is a lightweight, reliable, and transactional SQL migration CLI for Node.js. Designed for speed and consistency, it ensures your database schema evolves safely alongside your code.
+Runway is a lightweight, reliable, and transactional SQL migration CLI for Node.js, supporting PostgreSQL, MySQL and MariaDB. Designed for speed and consistency, it ensures your database schema evolves safely alongside your code.
 
 ## Features
 
@@ -16,9 +16,18 @@ Runway is a lightweight, reliable, and transactional SQL migration CLI for Node.
 - **Cross-platform Consistent** — automatic line ending normalization (CRLF/LF) for team workflows.
 - **Dry-run mode** — preview what would be applied without touching the database.
 - **Version range control** — `--from` and `--to` flags to run only a specific range of migrations.
-- **Minimal footprint** - only 6 production dependencies: `pg`, `commander`, `dotenv`, `chalk`, `ora`, and `inquirer`.
+- **Minimal footprint** - only 7 production dependencies: `pg`, `mysql2`, `commander`, `dotenv`, `chalk`, `ora`, and `inquirer`.
 - **Flexible config** - `runway.config.js` with multi-environment support and guided initialization.
 - **Pure ASCII UI** - 100% terminal-friendly with standardized English ASCII icons (No emojis).
+
+## Database Support
+
+| Database | Supported | Driver | Notes |
+| :--- | :---: | :--- | :--- |
+| **PostgreSQL** | Yes | `pg` | Recommended for full feature support. |
+| **MySQL** | Yes | `mysql2` | Supports version 8.0+ and MariaDB. |
+| **MariaDB** | Yes | `mysql2` | Fully compatible. |
+| **SQLite** | No | - | Coming in a future release. |
 
 ## Installation
 
@@ -57,6 +66,8 @@ runway rollback --steps 1
 
 Runway reads your database credentials from environment variables. You can use a connection string or individual variables.
 
+### PostgreSQL Setup
+
 **Via `DATABASE_URL`:**
 
 ```env
@@ -76,12 +87,36 @@ DB_NAME=mydb
 DB_SSL=false
 ```
 
+### MySQL Setup
+
+**Via `DATABASE_URL`:**
+
+```env
+DATABASE_URL=mysql://user:password@localhost:3306/mydb
+```
+
+**Via individual variables:**
+
+```env
+DB_HOST=localhost
+DB_PORT=3306
+DB_USER=myuser
+DB_PASSWORD=mypassword
+DB_NAME=mydb
+```
+
+> [!NOTE]
+> **MySQL Schemas**: Since MySQL uses database names as schemas, the `schema` configuration field is ignored for MySQL/MariaDB connections.
+
 ## Configuration
 
 Run `runway init` to generate a `runway.config.js` in your project root:
 
 ```javascript
 export default {
+  // Database engine: 'postgres' (default) or 'mysql'
+  dialect: 'postgres',
+
   // Directory where migration files are stored
   migrationsDir: './migrations',
 
@@ -200,7 +235,7 @@ runway baseline 005      # baseline only up to migration 005
 ## Requirements
 
 - Node.js `>= 18.0.0`
-- PostgreSQL (other databases coming in a future release)
+- PostgreSQL, MySQL or MariaDB
 
 ## Testing
 

@@ -28,7 +28,7 @@ jest.unstable_mockModule('chalk', () => {
 });
 
 jest.unstable_mockModule('../src/config.js', () => ({
-  config: { migrationsDir: './migrations', schema: 'public' },
+  config: { migrationsDir: './migrations', schema: 'public', dialect: 'postgres' },
   validateDatabaseConfig: jest.fn(),
 }));
 

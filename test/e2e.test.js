@@ -35,6 +35,7 @@ jest.unstable_mockModule('../src/config.js', () => ({
   config: {
     migrationsDir: './migrations',
     schema: 'public',
+    dialect: 'postgres',
     database: {
       url: 'postgresql://user:pass@localhost:5432/db',
     },
@@ -77,7 +78,7 @@ describe('End-to-End Flows (v0.3.0)', () => {
     });
     jest.spyOn(fs, 'mkdirSync').mockImplementation(() => {});
     jest.spyOn(fs, 'writeFileSync').mockImplementation(() => {});
-    jest.spyOn(fs, 'readFileSync').mockReturnValue('// url: process.env.DATABASE_URL');
+    jest.spyOn(fs, 'readFileSync').mockReturnValue("dialect: 'postgres'\n// url: process.env.DATABASE_URL");
     jest.spyOn(fs, 'readdirSync').mockReturnValue([]);
   });
 
@@ -88,6 +89,7 @@ describe('End-to-End Flows (v0.3.0)', () => {
   describe('Flow 1: New Project (Zero to Hero)', () => {
     it('initializes a new project without a database', async () => {
       inquirer.prompt.mockResolvedValue({
+        dialect: 'postgres',
         hasDatabase: false,
         setupEnv: false
       });

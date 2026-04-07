@@ -5,6 +5,24 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.0] - 2026-04-07
+
+### Added
+- **Multi-dialect Support** — Runway now officially supports **MySQL** and **MariaDB** in addition to PostgreSQL.
+- **`MySQLAdapter`** — Dedicated database adapter using the `mysql2/promise` driver, supporting structured config and `mysql://` URLs.
+- **Adapter Factory (`getAdapter`)** — Centralized logic to instantiate the correct adapter based on the `dialect` configuration.
+- **Dialect Configuration** — New `dialect` field in `runway.config.js` and `RUNWAY_DIALECT` environment variable (defaults to `postgres`).
+- **Placeholder Translation** — Automatic translation of PostgreSQL-style placeholders (`$1`, `$2`) to MySQL format (`?`) in migration scripts and internal queries.
+
+### Changed
+- **MySQL-aware `LogTable`** — Refactored internal migration tracking to handle MySQL's lack of schemas, backtick identifiers, and `ON DUPLICATE KEY UPDATE` syntax.
+- **Dialect-specific Default Ports** — `config.js` now intelligently sets the default port to `3306` for MySQL/MariaDB and `5432` for PostgreSQL.
+- **Enhanced `runway init`** — Updated templates for `runway.config.js` and `.env.example` to include the `dialect` field.
+- **Hardened Test Suite** — Added comprehensive unit tests for `MySQLAdapter`, `LogTable` (MySQL mode), and configuration validation, bringing the total to 108 tests.
+
+### Notes
+- **Backward Compatibility** — The default dialect remains `postgres`. Existing users do not need to change their configuration.
+
 ## [0.3.5] - 2026-03-31
 
 ### Added

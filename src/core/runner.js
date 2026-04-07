@@ -12,7 +12,7 @@ export class MigrationRunner {
   constructor(adapter, config) {
     this.adapter = adapter;
     this.config = config;
-    this.logTable = new LogTable(config.schema);
+    this.logTable = new LogTable(config.schema, config.dialect);
   }
 
   /**
