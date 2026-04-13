@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.4.0] - 2026-04-07
+## [0.4.0] - 2026-04-13
 
 ### Added
 - **Multi-dialect Support** — Runway now officially supports **MySQL** and **MariaDB** in addition to PostgreSQL.
@@ -13,12 +13,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Adapter Factory (`getAdapter`)** — Centralized logic to instantiate the correct adapter based on the `dialect` configuration.
 - **Dialect Configuration** — New `dialect` field in `runway.config.js` and `RUNWAY_DIALECT` environment variable (defaults to `postgres`).
 - **Placeholder Translation** — Automatic translation of PostgreSQL-style placeholders (`$1`, `$2`) to MySQL format (`?`) in migration scripts and internal queries.
+- **MariaDB E2E Test Suite** (`test/e2e-mariadb.test.js`) — Dedicated end-to-end tests confirming that init, migrate, and rollback flows function correctly when `dialect: 'mariadb'` is set.
+- **Multi-database Workflows section** — README now documents the unified adapter abstraction, per-dialect configuration, and environment switching via `--env`.
+
+### Fixed
+- **`mariadb` dialect validation** (`src/config.js`) — `DATABASE_URL` format validation now correctly accepts `mariadb` as a valid dialect alongside `mysql`. Previously it would produce a misleading PostgreSQL format error when switching to MariaDB.
+- **`dryRun` ordering in `runner.js`** — The `--dry-run` flag for `rollback` now short-circuits before the `.down.sql` file existence check, so dry-run rollbacks no longer fail when down files are missing.
+- **Unused imports** — Removed unused `create` and `status` imports from `e2e-mysql.test.js` and `e2e-mariadb.test.js`.
 
 ### Changed
 - **MySQL-aware `LogTable`** — Refactored internal migration tracking to handle MySQL's lack of schemas, backtick identifiers, and `ON DUPLICATE KEY UPDATE` syntax.
 - **Dialect-specific Default Ports** — `config.js` now intelligently sets the default port to `3306` for MySQL/MariaDB and `5432` for PostgreSQL.
-- **Enhanced `runway init`** — Updated templates for `runway.config.js` and `.env.example` to include the `dialect` field.
-- **Hardened Test Suite** — Added comprehensive unit tests for `MySQLAdapter`, `LogTable` (MySQL mode), and configuration validation, bringing the total to 108 tests.
+- **Enhanced `runway.config.js` template** — `dialect` field now includes inline documentation for supported drivers, default ports, and schema behavior differences.
+- **Hardened Test Suite** — 154 tests across 20 suites (↑ from 108). Coverage: 97.6% statements, 98.3% lines, 89.6% branches — all above the 80% CI threshold.
 
 ### Notes
 - **Backward Compatibility** — The default dialect remains `postgres`. Existing users do not need to change their configuration.
