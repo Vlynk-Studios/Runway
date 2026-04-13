@@ -1,3 +1,4 @@
+import { jest } from '@jest/globals';
 import { MigrationRunner } from '../src/core/runner.js';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -178,5 +179,84 @@ describe('MigrationRunner', () => {
     runner = new MigrationRunner(adapter, baseConfig);
     result = await runner.run({ to: 0 });
     expect(result.applied).toBe(0);
+  });
+
+  it('rolls back transaction on migration failure and throws clean error', async () => {
+    const error = new Error('bad syntax');
+    error.position = '5';
+    error.detail = 'syntax error at ...';
+
+    // Let setup queries succeed, but throw when the actual migration SQL runs
+    const adapter = createAdapter({ appliedRows: [] });
+    const rollbackSpy = jest.spyOn(adapter, 'rollback');
+    const commitSpy   = jest.spyOn(adapter, 'commit');
+
+    // Override query: succeed for DDL/SELECT setup, throw on migration content
+    jest.spyOn(adapter, 'query').mockImplementation(async (sql) => {
+      const trimmed = sql.trim();
+      if (
+        trimmed.startsWith('CREATE TABLE') ||
+        trimmed.startsWith('ALTER TABLE')  ||
+        trimmed.startsWith('SELECT')
+      ) {
+        return { rows: [] };
+      }
+      throw error;
+    });
+
+    const runner = new MigrationRunner(adapter, baseConfig);
+
+    await expect(runner.run({ to: 1 })).rejects.toThrow('bad syntax');
+    expect(rollbackSpy).toHaveBeenCalled();
+    expect(commitSpy).not.toHaveBeenCalled();
+  });
+
+  it('warnings when rolling back more steps than available', async () => {
+    const warnSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
+
+    // Use an existing fixture migration name so dryRun can list it without needing a .down file
+    const adapter = createAdapter({
+      appliedRows: [{ name: '001_initial.sql', checksum: '123' }],
+    });
+
+    const runner = new MigrationRunner(adapter, baseConfig);
+    await runner.rollback({ steps: 5, dryRun: true });
+
+    // The warning is logged via logger.warn → console.log
+    expect(warnSpy).toHaveBeenCalledWith(
+      expect.stringContaining('Requested 5 steps, but only 1 migration(s) are applied. Rolling back all.')
+    );
+    warnSpy.mockRestore();
+  });
+
+  describe('_buildSqlContext', () => {
+    it('returns empty string if no error context', () => {
+      const error = new Error('test');
+      expect(MigrationRunner._buildSqlContext(error)).toBe('');
+    });
+
+    it('returns line number and detail if available', () => {
+      const error = new Error('test');
+      error.position = '12'; // line 2 starts at 11
+      error.detail = 'some detail';
+      const sql = 'SELECT 1;\nSELECT 2;\nSELECT 3;';
+      const context = MigrationRunner._buildSqlContext(error, sql);
+      expect(context).toBe(' (line 2 - some detail)');
+    });
+
+    it('returns only line number if detail is missing', () => {
+      const error = new Error('test');
+      error.position = '22'; // line 3 starts near 22
+      const sql = 'SELECT 1;\nSELECT 2;\nSELECT 3;';
+      const context = MigrationRunner._buildSqlContext(error, sql);
+      expect(context).toBe(' (line 3)');
+    });
+
+    it('returns only detail if position is missing', () => {
+      const error = new Error('test');
+      error.detail = 'some detail';
+      const context = MigrationRunner._buildSqlContext(error, 'SELECT 1;');
+      expect(context).toBe(' (some detail)');
+    });
   });
 });

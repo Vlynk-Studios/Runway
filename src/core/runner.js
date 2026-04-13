@@ -186,6 +186,14 @@ export class MigrationRunner {
       const downFileName = migrationName.replace(/\.sql$/, '.down.sql');
       const downFilePath = path.join(migrationsDir, downFileName);
 
+      // Dry-run: report what would happen without touching the filesystem
+      if (dryRun) {
+        logger.warn(`[DRY-RUN] Step ${i + 1}/${totalSteps}: Would rollback ${migrationName}`);
+        summary.rolledBack++;
+        summary.details.push({ name: migrationName, status: 'DRY-RUN' });
+        continue;
+      }
+
       if (!fs.existsSync(downFilePath)) {
         throw new Error(
           `Rollback failed: The rollback file "${downFileName}" was not found for migration "${migrationName}".\n` +
@@ -194,13 +202,6 @@ export class MigrationRunner {
       }
 
       const content = fs.readFileSync(downFilePath, 'utf8');
-
-      if (dryRun) {
-        logger.warn(`[DRY-RUN] Step ${i + 1}/${totalSteps}: Would rollback ${migrationName}`);
-        summary.rolledBack++;
-        summary.details.push({ name: migrationName, status: 'DRY-RUN' });
-        continue;
-      }
 
       logger.info(`Rolling back migration [${i + 1}/${totalSteps}]: ${migrationName}`);
 
