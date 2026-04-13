@@ -97,14 +97,14 @@ export function validateDatabaseConfig() {
 
   // Validate DATABASE_URL format early to avoid cryptic pg/mysql errors at connect time
   if (hasUrl) {
-    const validSchemes = config.dialect === 'mysql' 
+    const validSchemes = ['mysql', 'mariadb'].includes(config.dialect)
       ? /^(mysql|mariadb):\/\//i 
       : /^(postgres|postgresql):\/\//i;
       
     if (!validSchemes.test(database.url)) {
       logger.error('Invalid DATABASE_URL format.');
-      const expected = config.dialect === 'mysql' 
-        ? 'mysql://user:password@host:port/dbname' 
+      const expected = ['mysql', 'mariadb'].includes(config.dialect)
+        ? `${config.dialect}://user:password@host:port/dbname` 
         : 'postgresql://user:password@host:port/dbname';
       logger.info(
         `Expected format: ${expected}\n` +

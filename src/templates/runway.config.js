@@ -5,8 +5,15 @@
 export default {
   /**
    * dialect: The database engine you are using.
-   * Supported: 'postgres' (default), 'mysql', 'mariadb'.
-   * Note: Using 'mysql' or 'mariadb' requires the 'mysql2' package to be installed.
+   * Options: 'postgres' (default), 'mysql', or 'mariadb'.
+   * 
+   * Transitioning between dialects:
+   * - 'postgres': Uses the 'pg' driver. Default port: 5432.
+   * - 'mysql': Uses the 'mysql2' driver. Default port: 3306.
+   * - 'mariadb': Uses the 'mysql2' driver. Default port: 3306.
+   * 
+   * Note: The 'mysql2' package is already bundled as a dependency of Runway.
+   * In MySQL/MariaDB, the database name effectively acts as the schema.
    */
   dialect: 'postgres',
 

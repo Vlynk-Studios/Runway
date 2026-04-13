@@ -14,6 +14,7 @@ Runway is a lightweight, reliable, and transactional SQL migration CLI for Node.
 
 - [Features](#features)
 - [Database Support](#database-support)
+- [Multi-database Workflows](#multi-database-workflows)
 - [Installation](#installation)
 - [Quick Start](#quick-start)
 - [Database Connection](#database-connection)
@@ -66,6 +67,25 @@ Runway is a lightweight, reliable, and transactional SQL migration CLI for Node.
 | **SQLite**     |    No     |     -     | Coming in a future release.               |
 
 ---
+
+## Multi-database Workflows
+
+Runway is designed to seamlessly manage migrations across different database dialects, enabling flexible workflows across environments or parallel support for multiple engines.
+
+### Unified Abstraction
+At its core, Runway uses a unified database adapter layer (`src/core/adapter/`) that normalizes behaviors between drivers like `pg` and `mysql2`. For example, Runway automatically handles placeholder translation for prepared SQL statements internally, allowing it to interface smoothly with PostgreSQL (`$1`), MySQL (`?`), and MariaDB (`?`).
+
+### Target Specificity
+A single `runway.config.js` or standard `.env` configuration locks the context into the specified engine.
+- You configure the `dialect` property ('postgres', 'mysql', or 'mariadb').
+- Migrations (`.sql` files) execute exactly as they are written, running through their respective engines.
+- **Tip**: If building a service intended to be deployed on both Postgres and MySQL, make sure the specific SQL syntaxes authored in the migration scripts are compliant with both ANSI SQL or maintain separate directories per dialect.
+
+### Environment Switching
+You can override the engine and connection details quickly by swapping `.env` files using the `--env` flag (e.g. `runway migrate --env .env.mysql` vs `runway migrate --env .env.postgres`), making it incredibly simple to test deployments on multiple databases.
+
+---
+
 
 ## Installation
 

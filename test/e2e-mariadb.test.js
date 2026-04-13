@@ -33,14 +33,14 @@ jest.unstable_mockModule('ora', () => ({
 }));
 
 // Mocking config to avoid reading real files/env
-// FORCING DIALECT: 'mysql'
+// FORCING DIALECT: 'mariadb'
 jest.unstable_mockModule('../src/config.js', () => ({
   config: {
     migrationsDir: './migrations',
-    schema: 'public', // In MySQL this will be ignored
-    dialect: 'mysql',
+    schema: 'public', // In MariaDB this will be ignored
+    dialect: 'mariadb',
     database: {
-      url: 'mysql://user:pass@localhost:3306/db',
+      url: 'mariadb://user:pass@localhost:3306/db',
     },
   },
   validateDatabaseConfig: jest.fn(),
@@ -54,7 +54,7 @@ const { logger } = await import('../src/logger.js');
 const mysql = (await import('mysql2/promise')).default;
 const inquirer = (await import('inquirer')).default;
 
-describe('End-to-End Flows (MySQL Support)', () => {
+describe('End-to-End Flows (MariaDB Support)', () => {
   let mockCwd;
 
   beforeEach(() => {
@@ -78,7 +78,7 @@ describe('End-to-End Flows (MySQL Support)', () => {
     });
     jest.spyOn(fs, 'mkdirSync').mockImplementation(() => {});
     jest.spyOn(fs, 'writeFileSync').mockImplementation(() => {});
-    jest.spyOn(fs, 'readFileSync').mockReturnValue("dialect: 'postgres'\n// url: process.env.DATABASE_URL");
+    jest.spyOn(fs, 'readFileSync').mockReturnValue("dialect: 'mariadb'\n// url: process.env.DATABASE_URL");
     jest.spyOn(fs, 'readdirSync').mockReturnValue([]);
   });
 
@@ -86,10 +86,10 @@ describe('End-to-End Flows (MySQL Support)', () => {
     jest.restoreAllMocks();
   });
 
-  describe('Flow 1: New Project (Zero to Hero) for MySQL', () => {
-    it('initializes a new project with MySQL config', async () => {
+  describe('Flow 1: New Project (Zero to Hero) for MariaDB', () => {
+    it('initializes a new project with MariaDB config', async () => {
       inquirer.prompt.mockResolvedValueOnce({
-        dialect: 'mysql',
+        dialect: 'mariadb',
         hasDatabase: false,
         setupEnv: false
       });
@@ -97,11 +97,11 @@ describe('End-to-End Flows (MySQL Support)', () => {
       await init();
 
       expect(fs.mkdirSync).toHaveBeenCalledWith(path.join(mockCwd, 'migrations'), { recursive: true });
-      expect(fs.writeFileSync).toHaveBeenCalledWith(path.join(mockCwd, 'runway.config.js'), expect.stringContaining("dialect: 'mysql'"));
+      expect(fs.writeFileSync).toHaveBeenCalledWith(path.join(mockCwd, 'runway.config.js'), expect.stringContaining("dialect: 'mariadb'"));
       expect(logger.suggest).toHaveBeenCalledWith(expect.stringContaining('runway create create-users-table'));
     });
 
-    it('runs migrations (migrate) with MySQL syntax', async () => {
+    it('runs migrations (migrate) with MariaDB syntax', async () => {
       fs.readdirSync.mockReturnValue(['001_init.sql']);
       fs.existsSync.mockReturnValue(true);
       fs.readFileSync.mockImplementation((p) => {
@@ -131,8 +131,8 @@ describe('End-to-End Flows (MySQL Support)', () => {
     });
   });
 
-  describe('Flow 3: Rollback for MySQL', () => {
-    it('rolls back migrations in MySQL', async () => {
+  describe('Flow 3: Rollback for MariaDB', () => {
+    it('rolls back migrations in MariaDB', async () => {
        fs.readdirSync.mockReturnValue(['001_init.sql']);
        fs.existsSync.mockReturnValue(true);
        fs.readFileSync.mockImplementation((p) => {
