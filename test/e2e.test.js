@@ -227,4 +227,92 @@ describe('End-to-End Flows (v0.3.0)', () => {
       expect(hasPendingLog).toBeDefined();
     });
   });
+
+  describe('Flow 4: Migrate and rollback edge branches', () => {
+    function makePgClient(rows = []) {
+      const mockQuery = jest.fn().mockImplementation((sql) => {
+        if (sql && sql.includes('SELECT name')) return { rows };
+        return { rows: [] };
+      });
+      const mockClient = {
+        connect: jest.fn().mockResolvedValue(undefined),
+        query: mockQuery,
+        end: jest.fn().mockResolvedValue(undefined),
+      };
+      pg.Client.mockImplementation(() => mockClient);
+      return mockQuery;
+    }
+
+    it('migrate: dry-run with 0 applicable migrations prints correct message', async () => {
+      fs.readdirSync.mockReturnValue([]);
+      fs.existsSync.mockReturnValue(true);
+      makePgClient([]);
+
+      await migrate({ dryRun: true });
+
+      expect(logger.warn).toHaveBeenCalledWith(
+        expect.stringContaining('Dry-run mode enabled')
+      );
+      expect(logger.info).toHaveBeenCalledWith(
+        expect.stringContaining('0 migration(s) would be applied')
+      );
+    });
+
+    it('migrate: dry-run with applied results logs dry-run footer', async () => {
+      fs.readdirSync.mockReturnValue(['001_init.sql']);
+      fs.existsSync.mockReturnValue(true);
+      fs.readFileSync.mockImplementation((p) => {
+        if (p.endsWith('001_init.sql')) return 'CREATE TABLE init;';
+        return '';
+      });
+      makePgClient([]);
+
+      await migrate({ dryRun: true });
+
+      expect(logger.warn).toHaveBeenCalledWith(
+        expect.stringContaining('This was a DRY-RUN')
+      );
+    });
+
+    it('migrate: no pending migrations prints info', async () => {
+      fs.readdirSync.mockReturnValue([]);
+      fs.existsSync.mockReturnValue(true);
+      makePgClient([]);
+
+      await migrate({});
+
+      expect(logger.info).toHaveBeenCalledWith(
+        expect.stringContaining('No pending migrations found')
+      );
+    });
+
+    it('rollback: dry-run logs spin stop and dry-run footer', async () => {
+      fs.readdirSync.mockReturnValue(['001_init.sql']);
+      fs.existsSync.mockReturnValue(true);
+      makePgClient([
+        { name: '001_init.sql', checksum: 'abc', applied_at: new Date() }
+      ]);
+
+      await rollback({ steps: 1, dryRun: true });
+
+      expect(logger.warn).toHaveBeenCalledWith(
+        expect.stringContaining('Dry-run mode enabled')
+      );
+      expect(logger.warn).toHaveBeenCalledWith(
+        expect.stringContaining('This was a DRY-RUN')
+      );
+    });
+
+    it('rollback: no applied migrations logs no-op message', async () => {
+      fs.readdirSync.mockReturnValue([]);
+      fs.existsSync.mockReturnValue(true);
+      makePgClient([]);
+
+      await rollback({ steps: 1 });
+
+      expect(logger.info).toHaveBeenCalledWith(
+        expect.stringContaining('No migrations were rolled back')
+      );
+    });
+  });
 });

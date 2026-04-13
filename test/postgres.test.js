@@ -96,6 +96,59 @@ describe('PostgresAdapter', () => {
       const adapter = new PostgresAdapter(config);
       await expect(adapter.connect()).rejects.toThrow('SSL connection error');
     });
+
+    it('classifies ENOTFOUND (host not found) errors correctly', async () => {
+      const error = new Error('getaddrinfo ENOTFOUND myhost');
+      error.code = 'ENOTFOUND';
+      pg.Client.prototype.connect.mockRejectedValueOnce(error);
+
+      const adapter = new PostgresAdapter(config);
+      await expect(adapter.connect()).rejects.toThrow('Host not found');
+    });
+
+    it('classifies EAI_AGAIN (DNS retry) errors correctly', async () => {
+      const error = new Error('getaddrinfo EAI_AGAIN myhost');
+      error.code = 'EAI_AGAIN';
+      pg.Client.prototype.connect.mockRejectedValueOnce(error);
+
+      const adapter = new PostgresAdapter(config);
+      await expect(adapter.connect()).rejects.toThrow('Host not found');
+    });
+
+    it('classifies ETIMEDOUT errors correctly', async () => {
+      const error = new Error('connect ETIMEDOUT');
+      error.code = 'ETIMEDOUT';
+      pg.Client.prototype.connect.mockRejectedValueOnce(error);
+
+      const adapter = new PostgresAdapter(config);
+      await expect(adapter.connect()).rejects.toThrow('Connection timed out');
+    });
+
+    it('classifies server starting up (57P03) errors correctly', async () => {
+      const error = new Error('Server is starting up');
+      error.code = '57P03';
+      pg.Client.prototype.connect.mockRejectedValueOnce(error);
+
+      const adapter = new PostgresAdapter(config);
+      await expect(adapter.connect()).rejects.toThrow('The database server is starting up');
+    });
+
+    it('classifies alternative auth failure (28000) correctly', async () => {
+      const error = new Error('Auth failed');
+      error.code = '28000';
+      pg.Client.prototype.connect.mockRejectedValueOnce(error);
+
+      const adapter = new PostgresAdapter(config);
+      await expect(adapter.connect()).rejects.toThrow('Authentication failed');
+    });
+
+    it('falls back to a generic message for unknown errors', async () => {
+      const error = new Error('Something completely unexpected');
+      pg.Client.prototype.connect.mockRejectedValueOnce(error);
+
+      const adapter = new PostgresAdapter(config);
+      await expect(adapter.connect()).rejects.toThrow('Failed to connect to PostgreSQL');
+    });
   });
 
   describe('query and transactions', () => {
