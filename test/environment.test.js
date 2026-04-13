@@ -19,7 +19,11 @@ describe('Environment Detection', () => {
     process.env.DATABASE_URL = 'postgres://test_user:test_pass@test_host:5432/test_db';
     
     // Use dynamic import after setting the env
-    const { config } = await import(`../src/config.js?test=${Date.now()}`);
+    let config;
+    await jest.isolateModulesAsync(async () => {
+      const module = await import('../src/config.js');
+      config = module.config;
+    });
     
     expect(config.database.url).toBe(process.env.DATABASE_URL);
   });
@@ -29,7 +33,10 @@ describe('Environment Detection', () => {
     
     // We can't easily check if dotenv was called with the right path without mocking it,
     // but we can verify the logic is in src/config.js
-    const configModule = await import(`../src/config.js?test=runway_env_${Date.now()}`);
+    let configModule;
+    await jest.isolateModulesAsync(async () => {
+      configModule = await import('../src/config.js');
+    });
     
     // Since we don't have a real .env.production, we just check if it's exported/handled
     // This is more of a code-path verification
@@ -39,7 +46,10 @@ describe('Environment Detection', () => {
   it('detects --env flag from process.argv', async () => {
     process.argv = ['node', 'bin/runway.js', 'status', '--env', '.env.custom'];
     
-    const configModule = await import(`../src/config.js?test=argv_${Date.now()}`);
+    let configModule;
+    await jest.isolateModulesAsync(async () => {
+      configModule = await import('../src/config.js');
+    });
     expect(configModule).toBeDefined();
   });
 
@@ -56,7 +66,11 @@ describe('Environment Detection', () => {
     delete process.env.DB_NAME;
     process.env.RUNWAY_ENV = '.env.nonexistent'; // Point to a file that doesn't exist
 
-    const { validateDatabaseConfig } = await import(`../src/config.js?test=exit_${Date.now()}`);
+    let validateDatabaseConfig;
+    await jest.isolateModulesAsync(async () => {
+      const module = await import('../src/config.js');
+      validateDatabaseConfig = module.validateDatabaseConfig;
+    });
     
     expect(() => validateDatabaseConfig()).toThrow('process.exit');
     exitSpy.mockRestore();

@@ -4,6 +4,20 @@
  */
 export default {
   /**
+   * dialect: The database engine you are using.
+   * Options: 'postgres' (default), 'mysql', or 'mariadb'.
+   * 
+   * Transitioning between dialects:
+   * - 'postgres': Uses the 'pg' driver. Default port: 5432.
+   * - 'mysql': Uses the 'mysql2' driver. Default port: 3306.
+   * - 'mariadb': Uses the 'mysql2' driver. Default port: 3306.
+   * 
+   * Note: The 'mysql2' package is already bundled as a dependency of Runway.
+   * In MySQL/MariaDB, the database name effectively acts as the schema.
+   */
+  dialect: 'postgres',
+
+  /**
    * migrationsDir: The directory where your migration files are stored.
    * By default, Runway looks in './migrations'.
    */
@@ -28,7 +42,7 @@ export default {
   database: {
     // url: process.env.DATABASE_URL,
     // host: process.env.DB_HOST || 'localhost',
-    // port: parseInt(process.env.DB_PORT || '5432', 10),
+    // port: parseInt(process.env.DB_PORT || '5432', 10), // Default: 5432 (Postgres) or 3306 (MySQL)
     // user: process.env.DB_USER,
     // password: process.env.DB_PASSWORD,
     // database: process.env.DB_NAME,

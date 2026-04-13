@@ -59,4 +59,20 @@ describe('logger', () => {
     expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('Next step:'));
     expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('runway migrate'));
   });
+
+  it('prints the mini header', () => {
+    logger.printMiniHeader('0.4.0');
+    expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('Runway'));
+    expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('v0.4.0'));
+  });
+
+  it('provides color helper functions', async () => {
+    const { colors } = await import('../src/logger.js');
+    expect(colors.cyan('test')).toBeDefined();
+    expect(colors.yellow('test')).toBeDefined();
+    expect(colors.red('test')).toBeDefined();
+    expect(colors.green('test')).toBeDefined();
+    expect(colors.magenta('test')).toBeDefined();
+    expect(colors.gray('test')).toBeDefined();
+  });
 });

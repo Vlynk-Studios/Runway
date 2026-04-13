@@ -4,7 +4,7 @@ import ora from 'ora';
 import chalk from 'chalk';
 import { config, validateDatabaseConfig } from '../config.js';
 import { logger } from '../logger.js';
-import { PostgresAdapter } from '../core/adapter/postgres.js';
+import { getAdapter } from '../core/adapter/index.js';
 import { LogTable } from '../core/log-table.js';
 
 /**
@@ -15,8 +15,8 @@ export async function status(_options = {}) {
   validateDatabaseConfig();
   
   const spinner = ora('Fetching database status...').start();
-  const adapter = new PostgresAdapter(config);
-  const logTable = new LogTable(config.schema);
+  const adapter = getAdapter(config);
+  const logTable = new LogTable(config.schema, config.dialect);
 
   try {
     await adapter.connect();

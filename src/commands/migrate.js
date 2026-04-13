@@ -2,20 +2,20 @@ import ora from 'ora';
 import chalk from 'chalk';
 import { config, validateDatabaseConfig } from '../config.js';
 import { logger } from '../logger.js';
-import { PostgresAdapter } from '../core/adapter/postgres.js';
+import { getAdapter } from '../core/adapter/index.js';
 import { MigrationRunner } from '../core/runner.js';
 
 /**
  * Migration command handler.
  * Coordinates DB connection and the runner.
  */
-export async function migrate(options) {
+export async function migrate(options = {}) {
   // 1. Validate database configuration
   validateDatabaseConfig();
 
   // 2. Initialize Adapter & Runner
   const spinner = ora('Establishing database connection...').start();
-  const adapter = new PostgresAdapter(config);
+  const adapter = getAdapter(config);
   const runner = new MigrationRunner(adapter, config);
 
   try {
@@ -80,6 +80,7 @@ export async function migrate(options) {
     console.log('\n');
 
   } catch (error) {
+    console.error(error.stack);
     spinner.fail('Migration cycle failed');
     logger.error(error.message);
     process.exit(1);

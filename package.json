@@ -1,7 +1,7 @@
 {
   "name": "@vlynk-studios/runway",
-  "version": "0.3.5",
-  "description": "Runway — SQL migration CLI for Node.js and PostgreSQL",
+  "version": "0.4.0",
+  "description": "Runway — SQL migration CLI for Node.js, PostgreSQL, MySQL and MariaDB",
   "type": "module",
   "repository": {
     "type": "git",
@@ -50,6 +50,8 @@
     "sql",
     "postgres",
     "postgresql",
+    "mysql",
+    "mariadb",
     "cli",
     "database",
     "devtools"
@@ -65,19 +67,20 @@
     ".env.example"
   ],
   "dependencies": {
-    "chalk": "^5.6.2",
-    "commander": "^14.0.3",
-    "dotenv": "^17.3.1",
-    "inquirer": "^13.3.2",
-    "ora": "^9.3.0",
-    "pg": "^8.20.0"
+    "chalk": "5.6.2",
+    "commander": "14.0.3",
+    "dotenv": "17.3.1",
+    "inquirer": "13.3.2",
+    "mysql2": "3.20.0",
+    "ora": "9.3.0",
+    "pg": "8.20.0"
   },
   "devDependencies": {
-    "@eslint/js": "^9.10.0",
-    "eslint": "^9.10.0",
-    "globals": "^17.4.0",
-    "jest": "^30.3.0",
-    "prettier": "^3.8.1",
-    "testcontainers": "^11.13.0"
+    "@eslint/js": "9.10.0",
+    "eslint": "9.39.4",
+    "globals": "17.4.0",
+    "jest": "30.3.0",
+    "prettier": "3.8.1",
+    "testcontainers": "11.13.0"
   }
 }

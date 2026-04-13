@@ -2,19 +2,19 @@ import ora from 'ora';
 import chalk from 'chalk';
 import { config, validateDatabaseConfig } from '../config.js';
 import { logger } from '../logger.js';
-import { PostgresAdapter } from '../core/adapter/postgres.js';
+import { getAdapter } from '../core/adapter/index.js';
 import { MigrationRunner } from '../core/runner.js';
 
 /**
  * Reverts the last migration applied to the database.
  */
-export async function rollback(options) {
+export async function rollback(options = {}) {
   // 1. Validate database configuration
   validateDatabaseConfig();
 
   // 2. Initialize Adapter & Runner
   const spinner = ora('Establishing database connection...').start();
-  const adapter = new PostgresAdapter(config);
+  const adapter = getAdapter(config);
   const runner = new MigrationRunner(adapter, config);
 
   try {
