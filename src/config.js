@@ -47,35 +47,52 @@ async function loadConfigFile() {
 }
 
 // 2. Load user config from file
-const userConfig = await loadConfigFile();
+let userConfig = await loadConfigFile();
 
-// 3. Re-initialize environment if config specify a different path and no override was provided
-if (!initialEnvPath && userConfig.envFile && userConfig.envFile !== '.env') {
-  dotenv.config({ path: userConfig.envFile, override: true, quiet: true, silent: true });
+// 3. Helper to apply configuration values to the config object
+function applyConfig(resolvedUserConfig) {
+  const initialEnvPath = resolveEnvPath();
+  
+  // Re-apply env if config specify a different path
+  if (!initialEnvPath && resolvedUserConfig.envFile && resolvedUserConfig.envFile !== '.env') {
+    dotenv.config({ path: resolvedUserConfig.envFile, override: true, quiet: true, silent: true });
+  }
+
+  const resolvedDialect = process.env.RUNWAY_DIALECT || resolvedUserConfig.dialect || 'postgres';
+  const defaultPort = resolvedDialect === 'mysql' ? '3306' : '5432';
+
+  config.dialect = resolvedDialect;
+  config.migrationsDir = process.env.RUNWAY_MIGRATIONS_DIR || resolvedUserConfig.migrationsDir || './migrations';
+  config.schema = process.env.RUNWAY_SCHEMA || resolvedUserConfig.schema || 'public';
+  
+  config.database = {
+    url: process.env.DATABASE_URL || resolvedUserConfig.database?.url,
+    host: process.env.DB_HOST || resolvedUserConfig.database?.host,
+    port: parseInt(process.env.DB_PORT || resolvedUserConfig.database?.port || defaultPort, 10),
+    user: process.env.DB_USER || resolvedUserConfig.database?.user,
+    password: process.env.DB_PASSWORD || resolvedUserConfig.database?.password,
+    database: process.env.DB_NAME || resolvedUserConfig.database?.database,
+    ssl: process.env.DB_SSL === 'true' || resolvedUserConfig.database?.ssl || false,
+  };
 }
 
-const resolvedDialect = process.env.RUNWAY_DIALECT || userConfig.dialect || 'postgres';
-const defaultPort = resolvedDialect === 'mysql' ? '3306' : '5432';
-
 /**
- * Resolved configuration object for Runway.
- * Priorities: Environment Variables > runway.config.js > Defaults.
+ * Refreshes the configuration by re-loading environment variables and the config file.
+ * Essential for integration tests that change the working directory.
  */
-export const config = {
-  dialect: resolvedDialect,
-  migrationsDir: process.env.RUNWAY_MIGRATIONS_DIR || userConfig.migrationsDir || './migrations',
-  schema: process.env.RUNWAY_SCHEMA || userConfig.schema || 'public',
+export async function refreshConfig() {
+  const initialEnvPath = resolveEnvPath();
+  dotenv.config({ path: initialEnvPath || '.env', override: true, quiet: true, silent: true });
   
-  database: {
-    url: process.env.DATABASE_URL || userConfig.database?.url,
-    host: process.env.DB_HOST || userConfig.database?.host,
-    port: parseInt(process.env.DB_PORT || userConfig.database?.port || defaultPort, 10),
-    user: process.env.DB_USER || userConfig.database?.user,
-    password: process.env.DB_PASSWORD || userConfig.database?.password,
-    database: process.env.DB_NAME || userConfig.database?.database,
-    ssl: process.env.DB_SSL === 'true' || userConfig.database?.ssl || false,
-  }
-};
+  userConfig = await loadConfigFile();
+  applyConfig(userConfig);
+}
+
+// 4. Resolved configuration object for Runway.
+export const config = {};
+
+// Initial Load
+applyConfig(userConfig);
 
 /**
  * Validates the database configuration.

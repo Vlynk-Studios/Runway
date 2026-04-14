@@ -16,33 +16,40 @@ describe('Integration Test: MariaDB Full Migration Lifecycle', () => {
   let oldCwd;
 
   // Increase timeout for container startup
-  jest.setTimeout(90000);
+  jest.setTimeout(300000);
 
   beforeAll(async () => {
-    // 1. Start real MariaDB container
+    // 1. Setup temporary project directory
+    testProjectDir = fs.mkdtempSync(path.join(os.tmpdir(), 'runway-mariadb-integration-'));
+    oldCwd = process.cwd();
+    process.chdir(testProjectDir);
+
+    // 2. Ensure the dialect is set for config validation
+    process.env.RUNWAY_DIALECT = 'mariadb';
+
+    // 3. Start real MariaDB container
     // MariaDB 10.11 is a stable LTS version
     container = await new MariaDbContainer('mariadb:10.11')
       .withDatabase('runway_test')
       .withUsername('tester')
-      .withPassword('password')
+      .withUserPassword('password')
       .start();
 
     const host = container.getHost();
     const port = container.getMappedPort(3306);
     // Runway uses MySQL protocol for MariaDB since it uses the mysql2 driver
     dbUrl = `mysql://tester:password@${host}:${port}/runway_test`;
-    
-    // 2. Setup temporary project directory
-    testProjectDir = fs.mkdtempSync(path.join(os.tmpdir(), 'runway-mariadb-integration-'));
-    oldCwd = process.cwd();
-    process.chdir(testProjectDir);
 
-    // 3. Create .env file
+    // 4. Create .env file
     fs.writeFileSync(path.join(testProjectDir, '.env'), `DATABASE_URL="${dbUrl}"\n`);
+    
+    // 5. IMPORTANT: Refresh config after changing CWD and setting .env
+    const { refreshConfig } = await import('../src/config.js');
+    await refreshConfig();
   });
 
   afterAll(async () => {
-    process.chdir(oldCwd);
+    if (oldCwd) process.chdir(oldCwd);
     if (testProjectDir && fs.existsSync(testProjectDir)) {
       try {
         fs.rmSync(testProjectDir, { recursive: true, force: true });
@@ -101,7 +108,7 @@ describe('Integration Test: MariaDB Full Migration Lifecycle', () => {
     await adapter.query("CREATE TABLE legacy_data (id INT PRIMARY KEY, content TEXT);");
     await baseline('002', { yes: true });
 
-    const { rows: history } = await adapter.query("SELECT version FROM runway_migrations WHERE version LIKE '%002%'");
+    const { rows: history } = await adapter.query("SELECT name FROM runway_migrations WHERE name LIKE '%002%'");
     expect(history.length).toBe(1);
 
     await adapter.end();

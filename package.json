@@ -21,10 +21,10 @@
     "lint": "eslint .",
     "format": "prettier --write .",
     "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js",
-    "test:integration": "node --experimental-vm-modules node_modules/jest/bin/jest.js test/integration.test.js",
-    "test:integration:mysql": "node --experimental-vm-modules node_modules/jest/bin/jest.js test/integration-mysql.test.js",
-    "test:integration:mariadb": "node --experimental-vm-modules node_modules/jest/bin/jest.js test/integration-mariadb.test.js",
-    "test:integration:all": "node --experimental-vm-modules node_modules/jest/bin/jest.js test/integration.test.js test/integration-mysql.test.js test/integration-mariadb.test.js",
+    "test:integration": "node --experimental-vm-modules node_modules/jest/bin/jest.js test/integration-postgres.test.js --testPathIgnorePatterns 'node_modules'",
+    "test:integration:mysql": "node --experimental-vm-modules node_modules/jest/bin/jest.js test/integration-mysql.test.js --testPathIgnorePatterns 'node_modules'",
+    "test:integration:mariadb": "node --experimental-vm-modules node_modules/jest/bin/jest.js test/integration-mariadb.test.js --testPathIgnorePatterns 'node_modules'",
+    "test:integration:all": "node --experimental-vm-modules node_modules/jest/bin/jest.js test/integration-postgres.test.js test/integration-mysql.test.js test/integration-mariadb.test.js --testPathIgnorePatterns 'node_modules'",
     "test:coverage": "node --experimental-vm-modules node_modules/jest/bin/jest.js --coverage",
     "prepublishOnly": "npm run lint && npm test"
   },
@@ -33,7 +33,7 @@
     "transform": {},
     "testPathIgnorePatterns": [
       "/node_modules/",
-      "integration.test.js"
+      "integration-.*.test.js"
     ],
     "collectCoverageFrom": [
       "src/**/*.js",

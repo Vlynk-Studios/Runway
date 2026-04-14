@@ -48,7 +48,7 @@ export async function create(name) {
     .toLowerCase()
     .trim()
     .replace(/\s+/g, '-')           // Spaces to hyphens
-    .replace(/[^a-z0-9-]/g, '');    // Remove special characters (except hyphens)
+    .replace(/[^a-z0-9-_]/g, '');    // Remove special characters (except hyphens/underscores)
   
   const upFileName = `${prefix}_${sanitizedName}.sql`;
   const downFileName = `${prefix}_${sanitizedName}.down.sql`;

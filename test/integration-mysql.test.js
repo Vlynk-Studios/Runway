@@ -17,10 +17,18 @@ describe('Integration Test: MySQL Full Migration Lifecycle', () => {
   let oldCwd;
 
   // Increase timeout for container startup and image pull
-  jest.setTimeout(90000);
+  jest.setTimeout(300000);
 
   beforeAll(async () => {
-    // 1. Start real MySQL container
+    // 1. Setup temporary project directory
+    testProjectDir = fs.mkdtempSync(path.join(os.tmpdir(), 'runway-mysql-integration-'));
+    oldCwd = process.cwd();
+    process.chdir(testProjectDir);
+
+    // 2. Ensure the dialect is set for config validation
+    process.env.RUNWAY_DIALECT = 'mysql';
+
+    // 3. Start real MySQL container
     // We use 8.0 as it's a very stable and common version
     container = await new MySqlContainer('mysql:8.0')
       .withDatabase('runway_test')
@@ -33,19 +41,17 @@ describe('Integration Test: MySQL Full Migration Lifecycle', () => {
     const host = container.getHost();
     const port = container.getMappedPort(3306);
     dbUrl = `mysql://tester:password@${host}:${port}/runway_test`;
-    
-    // 2. Setup temporary project directory to avoid polluting the workspace
-    testProjectDir = fs.mkdtempSync(path.join(os.tmpdir(), 'runway-mysql-integration-'));
-    oldCwd = process.cwd();
-    process.chdir(testProjectDir);
 
-    // 3. Create .env file with the container's URL
-    // Runway's config (src/config.js) looks for DATABASE_URL by default
+    // 4. Create .env file
     fs.writeFileSync(path.join(testProjectDir, '.env'), `DATABASE_URL="${dbUrl}"\n`);
+
+    // 5. IMPORTANT: Refresh config after changing CWD and setting .env
+    const { refreshConfig } = await import('../src/config.js');
+    await refreshConfig();
   });
 
   afterAll(async () => {
-    process.chdir(oldCwd);
+    if (oldCwd) process.chdir(oldCwd);
     // Cleanup temporary files
     if (testProjectDir && fs.existsSync(testProjectDir)) {
       try {
@@ -142,9 +148,9 @@ describe('Integration Test: MySQL Full Migration Lifecycle', () => {
     // Baseline migration '003'
     await baseline('003', { yes: true });
 
-    const { rows: historyAfterBaseline } = await adapter.query("SELECT version FROM runway_migrations ORDER BY id DESC LIMIT 1");
+    const { rows: historyAfterBaseline } = await adapter.query("SELECT name FROM runway_migrations ORDER BY id DESC LIMIT 1");
     // Verify it was registered in the log table
-    expect(historyAfterBaseline[0].version).toContain('003');
+    expect(historyAfterBaseline[0].name).toContain('003');
     
     // Verify count increased by 1
     const { rows: historyCountAfter } = await adapter.query("SELECT COUNT(*) as count FROM runway_migrations");

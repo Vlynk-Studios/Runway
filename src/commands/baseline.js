@@ -39,7 +39,7 @@ export async function baseline(version, _options = {}) {
 
     const files = fs
       .readdirSync(migrationsDir)
-      .filter((f) => /^\d+_.+\.sql$/.test(f))
+      .filter((f) => /^\d+_.+\.sql$/.test(f) && !f.endsWith('.down.sql'))
       .sort();
 
     // Determine target files based on version (if provided)
