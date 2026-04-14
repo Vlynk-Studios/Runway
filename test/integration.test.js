@@ -14,7 +14,7 @@ describe('Integration Test: Full Migration Lifecycle', () => {
   let oldCwd;
 
   // Increase timeout for container startup
-  jest.setTimeout(60000);
+  jest.setTimeout(90000);
 
   beforeAll(async () => {
     // 1. Start real PostgreSQL container
