@@ -2,9 +2,9 @@
 
 [![npm version](https://img.shields.io/npm/v/@vlynk-studios/runway.svg?style=flat-square)](https://www.npmjs.com/package/@vlynk-studios/runway)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=flat-square)](https://opensource.org/licenses/MIT)
-[![Coverage Status](https://img.shields.io/badge/Coverage-93%25-success.svg?style=flat-square)](#testing)
+[![Coverage Status](https://img.shields.io/badge/Coverage-97%25-success.svg?style=flat-square)](#testing)
 [![Build Status](https://img.shields.io/github/actions/workflow/status/vlynk-studios/runway/ci.yml?style=flat-square)](https://github.com/vlynk-studios/runway/actions)
-[![Node.js](https://img.shields.io/badge/node-%3E%3D18.0.0-brightgreen.svg?style=flat-square)](https://nodejs.org)
+[![Node.js](https://img.shields.io/badge/node-%3E%3D20.0.0-brightgreen.svg?style=flat-square)](https://nodejs.org)
 
 Runway is a lightweight, reliable, and transactional SQL migration CLI for Node.js, supporting **PostgreSQL**, **MySQL**, and **MariaDB**. Designed for speed and consistency, it ensures your database schema evolves safely alongside your code.
 
@@ -501,7 +501,7 @@ The adapter layer abstracts all database-specific behavior. Adding a new databas
 
 ## Testing
 
-Runway is heavily tested with both unit and integration suites, achieving **93% coverage**.
+Runway is heavily tested with both unit and integration suites, achieving **97% coverage**.
 
 ### Unit Tests
 
@@ -513,10 +513,15 @@ npm test
 
 ### Integration Tests
 
-End-to-end tests using [Testcontainers](https://testcontainers.com/). **Requires Docker** to be running on your machine. Covers both PostgreSQL and MySQL.
+End-to-end tests using [Testcontainers](https://testcontainers.com/). **Requires Docker** to be running on your machine. Covers **PostgreSQL**, **MySQL**, and **MariaDB**.
 
 ```bash
-npm run test:integration
+# Run all integration tests
+npm run test:integration:all
+
+# Run dialect-specific tests
+npm run test:integration:mysql
+npm run test:integration:mariadb
 ```
 
 ### Coverage Report
@@ -533,7 +538,7 @@ Coverage thresholds are enforced at **80%** for branches, functions, lines, and 
 
 ## Requirements
 
-- **Node.js** `>= 18.0.0`
+- **Node.js** `>= 20.0.0`
 - **PostgreSQL**, **MySQL 8.0+**, or **MariaDB**
 
 ---
