@@ -1,6 +1,6 @@
 {
   "name": "@vlynk-studios/runway",
-  "version": "0.4.0",
+  "version": "1.4.1",
   "description": "Runway — SQL migration CLI for Node.js, PostgreSQL, MySQL and MariaDB",
   "type": "module",
   "repository": {
@@ -15,13 +15,16 @@
     "runway": "./bin/runway.js"
   },
   "engines": {
-    "node": ">=18.0.0"
+    "node": ">=20.0.0"
   },
   "scripts": {
     "lint": "eslint .",
     "format": "prettier --write .",
     "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js",
-    "test:integration": "node --experimental-vm-modules node_modules/jest/bin/jest.js test/integration.test.js",
+    "test:integration": "node --experimental-vm-modules node_modules/jest/bin/jest.js test/integration-postgres.test.js --testPathIgnorePatterns 'node_modules'",
+    "test:integration:mysql": "node --experimental-vm-modules node_modules/jest/bin/jest.js test/integration-mysql.test.js --testPathIgnorePatterns 'node_modules'",
+    "test:integration:mariadb": "node --experimental-vm-modules node_modules/jest/bin/jest.js test/integration-mariadb.test.js --testPathIgnorePatterns 'node_modules'",
+    "test:integration:all": "node --experimental-vm-modules node_modules/jest/bin/jest.js test/integration-postgres.test.js test/integration-mysql.test.js test/integration-mariadb.test.js --testPathIgnorePatterns 'node_modules'",
     "test:coverage": "node --experimental-vm-modules node_modules/jest/bin/jest.js --coverage",
     "prepublishOnly": "npm run lint && npm test"
   },
@@ -30,7 +33,7 @@
     "transform": {},
     "testPathIgnorePatterns": [
       "/node_modules/",
-      "integration.test.js"
+      "integration-.*.test.js"
     ],
     "collectCoverageFrom": [
       "src/**/*.js",
@@ -77,6 +80,9 @@
   },
   "devDependencies": {
     "@eslint/js": "9.10.0",
+    "@testcontainers/mariadb": "^11.13.0",
+    "@testcontainers/mysql": "11.13.0",
+    "@testcontainers/postgresql": "11.13.0",
     "eslint": "9.39.4",
     "globals": "17.4.0",
     "jest": "30.3.0",

@@ -5,6 +5,26 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.1] - 2026-04-14
+
+### Added
+- **Full Integration Testing Suite** — Established a robust integration testing framework for **PostgreSQL**, **MySQL**, and **MariaDB** using real Docker containers via `Testcontainers`.
+- **Automated CI Integration** — Integration tests are now part of the GitHub Actions pipeline, ensuring dialect compatibility on every PR and push.
+- **Config Isolation (`refreshConfig`)** — Exposed a `refreshConfig` function in `src/config.js` to allow re-evaluating the environment and configuration dynamically, improving test isolation and supporting complex CLI workflows.
+- **Improved Integration Scripts** — Added `test:integration:mysql`, `test:integration:mariadb`, and `test:integration:all` to the `package.json` for easier local development.
+
+### Fixed
+- **Migration Name Sanitization** (`src/commands/create.js`) — Fixed a bug where underscores (`_`) were being stripped from migration names. They are now preserved, matching common naming conventions.
+- **Baseline Logic** (`src/commands/baseline.js`) — Fixed a bug where `.down.sql` files were being incorrectly registered in the migration log table during a baseline operation.
+- **LogTable Dialect Schema** — Verified and corrected the `runway_migrations` table structure across all dialects, ensuring consistent primary key and unique constraint behavior.
+- **Column Naming in Tests** — Corrected a discrepancy in integration tests where the `version` column was referenced instead of `name`.
+- **MySqlContainer Compatibility** — Fixed an API mismatch with `@testcontainers/mysql` by using the correct `.withUserPassword()` method.
+
+### Changed
+- **Node.js Support** — Formally dropped support for Node.js 18. The project now officially supports and is tested on **Node.js 20, 22, and 24**.
+- **Extended Test Timeouts** — Standardized integration test timeouts to **300 seconds** to accommodate Docker image pulls and container startup in resource-constrained environments.
+- **Standardized Integration filenames** — Renamed `test/integration.test.js` to `test/integration-postgres.test.js` for consistency with other dialect-specific suites.
+
 ## [0.4.0] - 2026-04-13
 
 ### Added

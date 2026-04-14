@@ -14,25 +14,30 @@ describe('Integration Test: Full Migration Lifecycle', () => {
   let oldCwd;
 
   // Increase timeout for container startup
-  jest.setTimeout(60000);
+  jest.setTimeout(300000);
 
   beforeAll(async () => {
-    // 1. Start real PostgreSQL container
+    // 1. Setup temporary project directory
+    testProjectDir = fs.mkdtempSync(path.join(os.tmpdir(), 'runway-postgres-integration-'));
+    oldCwd = process.cwd();
+    process.chdir(testProjectDir);
+
+    // 2. Start real PostgreSQL container
     container = await new PostgreSqlContainer('postgres:16-alpine')
       .withDatabase('runway_test')
       .withUsername('tester')
       .withPassword('password')
       .start();
 
-    dbUrl = `postgresql://tester:password@${container.getHost()}:${container.getMappedPort(5432)}/runway_test`;
-    
-    // 2. Setup temporary project directory
-    testProjectDir = fs.mkdtempSync(path.join(os.tmpdir(), 'runway-integration-'));
-    oldCwd = process.cwd();
-    process.chdir(testProjectDir);
+    dbUrl = container.getConnectionUri();
 
-    // 3. Create .env file with the container's URL
+    // 3. Create .env file
     fs.writeFileSync(path.join(testProjectDir, '.env'), `DATABASE_URL="${dbUrl}"\n`);
+    
+    // 4. IMPORTANT: Refresh config after changing CWD and setting .env
+    // This allows the ESM-cached config to pick up the new project dir
+    const { refreshConfig } = await import('../src/config.js');
+    await refreshConfig();
   });
 
   afterAll(async () => {
@@ -118,8 +123,8 @@ describe('Integration Test: Full Migration Lifecycle', () => {
     await adapter.query("CREATE TABLE settings (key TEXT, val TEXT);");
     await baseline('003', {});
 
-    const historyAfterBaseline = await adapter.query("SELECT version FROM runway_migrations ORDER BY version ASC");
-    expect(historyAfterBaseline.rows.map(r => r.version)).toContain('003');
+    const historyAfterBaseline = await adapter.query("SELECT name FROM runway_migrations ORDER BY name ASC");
+    expect(historyAfterBaseline.rows.map(r => r.name)).toContain('003_manual_change.sql');
 
     await adapter.end();
   });
